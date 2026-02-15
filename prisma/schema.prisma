@@ -1,14 +1,35 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Resource {
+  id          Int           @id @default(autoincrement())
+  name        String        // π.χ. "Dr. Vasilis" ή "Alexandrite Laser"
+  type        String        // "MEDICAL" ή "AESTHETIC"
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          Int      @id @default(autoincrement())
+  date        DateTime // Ημερομηνία & Ώρα
+  status      String   @default("FREE") // "FREE", "BOOKED"
+  
+  // Στοιχεία Πελάτη
+  patientName String?
+  patientTel  String?
+  notes       String?
+
+  // Σύνδεση με Πόρο
+  resourceId  Int
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  
+  createdAt   DateTime @default(now())
+
+  // Δεν γίνεται να κλείσεις τον ίδιο πόρο την ίδια ώρα
+  @@unique([date, resourceId])
 }
