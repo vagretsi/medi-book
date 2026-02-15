@@ -7,14 +7,18 @@ export default function LoginPage() {
   async function login(formData: FormData) {
     'use server';
     
-    const username = formData.get('username');
-    const password = formData.get('password');
+    const usernameInput = formData.get('username') as string;
+    const passwordInput = formData.get('password') as string;
 
-    // Έλεγχος με τα στοιχεία από το .env
-    if (
-      username === process.env.ADMIN_USERNAME && 
-      password === process.env.ADMIN_PASSWORD
-    ) {
+    // Παίρνουμε τις λίστες από το .env (χωρισμένες με κόμμα)
+    const usernames = process.env.ALLOWED_USERNAMES?.split(',') || [];
+    const passwords = process.env.ALLOWED_PASSWORDS?.split(',') || [];
+
+    // Βρίσκουμε αν το username υπάρχει στη λίστα
+    const userIndex = usernames.indexOf(usernameInput);
+
+    // Έλεγχος: Το username πρέπει να υπάρχει ΚΑΙ το password στο ίδιο index να ταιριάζει
+    if (userIndex !== -1 && passwords[userIndex] === passwordInput) {
       // Δημιουργία του Cookie συνεδρίας
       (await cookies()).set('admin_auth', 'true', {
         httpOnly: true,
@@ -23,10 +27,9 @@ export default function LoginPage() {
         maxAge: 60 * 60 * 24 * 7, // 1 εβδομάδα διάρκεια
       });
       
-      // Ανακατεύθυνση στο Dashboard
       redirect('/');
     } else {
-      // Αν τα στοιχεία είναι λάθος (εδώ θα μπορούσαμε να προσθέσουμε error message)
+      // Αν τα στοιχεία είναι λάθος
       redirect('/login?error=1');
     }
   }
@@ -37,11 +40,11 @@ export default function LoginPage() {
         
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="bg-slate-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <Lock className="text-white w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800">MediBook Login</h1>
-          <p className="text-slate-500 text-sm mt-1">Παρακαλώ εισάγετε τα στοιχεία σας</p>
+          <p className="text-slate-500 text-sm mt-1">Είσοδος στο σύστημα διαχείρισης</p>
         </div>
 
         {/* Form */}
@@ -80,9 +83,9 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-all duration-300 shadow-lg transform hover:-translate-y-0.5"
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg transform hover:-translate-y-0.5"
           >
-            Είσοδος στο Σύστημα
+            Είσοδος
           </button>
         </form>
 
