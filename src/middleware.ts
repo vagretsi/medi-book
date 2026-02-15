@@ -1,27 +1,23 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/request';
+import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // 1. Παίρνουμε το cookie που ονομάσαμε 'admin_auth'
   const authCookie = request.cookies.get('admin_auth');
-  
-  // 2. Ελέγχουμε αν ο χρήστης προσπαθεί να πάει στη σελίδα login
-  const isLoginPage = request.nextUrl.pathname === '/login';
+  const { pathname } = request.nextUrl;
 
-  // 3. ΑΝ ΔΕΝ ΕΧΕΙ COOKIE και ΔΕΝ ΕΙΝΑΙ ΣΤΟ LOGIN -> Στείλτον στο Login
-  if (!authCookie && !isLoginPage) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  // Εξαιρέσεις: Μην ελέγχεις το login page και τα στατικά αρχεία
+  if (pathname === '/login' || pathname.startsWith('/_next') || pathname.includes('.')) {
+    return NextResponse.next();
   }
 
-  // 4. ΑΝ ΕΧΕΙ COOKIE και ΠΑΕΙ ΣΤΟ LOGIN -> Στείλτον στο Dashboard (αφού είναι ήδη μέσα)
-  if (authCookie && isLoginPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // Αν δεν είναι συνδεδεμένος, στείλτον στο login
+  if (!authCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   return NextResponse.next();
 }
 
-// 5. ΠΟΥ ΝΑ ΤΡΕΧΕΙ: Σε όλες τις σελίδες εκτός από στατικά αρχεία και API
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: '/:path*',
 };
