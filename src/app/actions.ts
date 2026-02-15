@@ -1,4 +1,6 @@
 'use server'
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 
@@ -20,4 +22,8 @@ export async function bookAppointment(formData: FormData) {
   } catch (e) {
     return { success: false }
   }
+}
+export async function logout() {
+  (await cookies()).delete('admin_auth');
+  redirect('/login');
 }
