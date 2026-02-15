@@ -78,7 +78,7 @@ export default async function SecretaryDashboard() {
                     <p className="text-sm italic">Κανένα πρόγραμμα ακόμα.</p>
                   </div>
                 ) : (
-                  resource.appointments.map((apt) => (
+                  resource.appointments.map((apt: any) => (
                     <div 
                       key={apt.id} 
                       className={`group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-all duration-200 
