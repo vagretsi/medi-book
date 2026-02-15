@@ -5,8 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 const prisma = new PrismaClient()
 
-export async function bookAppointment(formData: FormData) {
-  // Παίρνουμε τα δεδομένα από τη φόρμα
+export default function BookingManager({ appointments }: { appointments: any }) {  // Παίρνουμε τα δεδομένα από τη φόρμα
   const aptId = Number(formData.get('aptId'))
   const patientName = formData.get('patientName') as string
   const patientTel = formData.get('patientTel') as string

@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { el } from "date-fns/locale";
 import { Calendar } from "lucide-react";
 import BookingManager from "@/components/BookingManager";
+import BookingModal from './BookingModal'
 
 export const dynamic = "force-dynamic";
 const prisma = new PrismaClient();
