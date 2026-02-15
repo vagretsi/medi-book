@@ -47,7 +47,7 @@ export default async function SecretaryDashboard() {
 
       {/* Grid: Οι δύο κόσμοι (Medical vs Aesthetic) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {resources.map((resource) => {
+        {resources.map((resource: any) => {
           const isMedical = resource.type === 'MEDICAL';
           const themeColor = isMedical ? 'blue' : 'rose';
           // Tailwind dynamic classes tricks needed usually, but keeping simple here:
