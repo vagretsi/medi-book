@@ -5,12 +5,17 @@ export function middleware(request: NextRequest) {
   const authCookie = request.cookies.get('admin_auth');
   const { pathname } = request.nextUrl;
 
-  // Εξαιρέσεις: Μην ελέγχεις το login page και τα στατικά αρχεία
-  if (pathname === '/login' || pathname.startsWith('/_next') || pathname.includes('.')) {
+  // 1. ΕΞΑΙΡΕΣΕΙΣ: Άφησε αυτά να περνάνε πάντα
+  if (
+    pathname.startsWith('/login') || 
+    pathname.startsWith('/_next') || 
+    pathname.startsWith('/api') ||
+    pathname.includes('.') // για favicon, images κτλ
+  ) {
     return NextResponse.next();
   }
 
-  // Αν δεν είναι συνδεδεμένος, στείλτον στο login
+  // 2. ΕΛΕΓΧΟΣ: Αν ΔΕΝ έχει cookie, στείλτον στο /login
   if (!authCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
