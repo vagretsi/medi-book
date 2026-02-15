@@ -1,53 +1,56 @@
-import { PrismaClient } from "@prisma/client";
-import { format } from "date-fns";
-import { el } from "date-fns/locale";
-import { Calendar } from "lucide-react";
-import BookingManager from "@/components/BookingManager";
+'use client'
+
+import { useState } from 'react'
+import { PlusCircle, User, Phone } from 'lucide-react'
 import BookingModal from './BookingModal'
+import { format } from 'date-fns'
 
-export const dynamic = "force-dynamic";
-const prisma = new PrismaClient();
-
-export default async function SecretaryDashboard() {
-  const resources = await prisma.resource.findMany({
-    orderBy: { id: 'asc' },
-    include: {
-      appointments: {
-        where: { date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
-        orderBy: { date: "asc" },
-      },
-    },
-  });
+export default function BookingManager({ appointments }: { appointments: any }) {
+  const [selectedApt, setSelectedApt] = useState<any>(null)
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-600 rounded-lg text-white"><Calendar className="w-6 h-6" /></div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">MediBook</h1>
-            <p className="text-slate-500 text-sm">Πίνακας Ελέγχου</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="font-mono text-xl text-blue-600 font-bold">
-            {format(new Date(), "EEEE, d MMMM yyyy", { locale: el })}
-          </p>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {resources.map((resource) => (
-          <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className={`p-5 border-b flex justify-between items-center ${resource.type === 'MEDICAL' ? 'bg-blue-50' : 'bg-rose-50'}`}>
-              <h2 className={`font-bold text-lg ${resource.type === 'MEDICAL' ? 'text-blue-700' : 'text-rose-700'}`}>{resource.name}</h2>
+    <>
+      <div className="space-y-3">
+        {appointments.map((apt: any) => (
+          <div 
+            key={apt.id} 
+            className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-all duration-200 
+              ${apt.status === 'FREE' ? 'bg-white border-slate-200 hover:border-blue-400' : 'bg-slate-100 opacity-90'}`}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`font-mono text-xl font-bold ${apt.status === 'FREE' ? 'text-slate-700' : 'text-slate-400 line-through'}`}>
+                {format(new Date(apt.date), "HH:mm")}
+              </div>
+              
+              {apt.status === 'FREE' ? (
+                <span className="text-emerald-600 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">ΔΙΑΘΕΣΙΜΟ</span>
+              ) : (
+                <div className="flex flex-col">
+                   <div className="flex items-center gap-1 text-slate-800 font-bold text-sm"><User className="w-3 h-3" /> {apt.patientName}</div>
+                   <div className="flex items-center gap-1 text-slate-500 text-xs"><Phone className="w-3 h-3" /> {apt.patientTel}</div>
+                </div>
+              )}
             </div>
-            <div className="p-4 bg-slate-50/50 flex-1">
-              <BookingManager appointments={resource.appointments} />
+
+            <div>
+              {apt.status === 'FREE' ? (
+                <button 
+                  onClick={() => setSelectedApt(apt)}
+                  className="flex items-center gap-1 bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <PlusCircle className="w-3 h-3" /> Κράτηση
+                </button>
+              ) : (
+                <span className="text-xs font-medium text-slate-400 italic">Κλεισμένο</span>
+              )}
             </div>
           </div>
         ))}
       </div>
-    </div>
-  );
+
+      {selectedApt && (
+        <BookingModal apt={selectedApt} onClose={() => setSelectedApt(null)} />
+      )}
+    </>
+  )
 }
