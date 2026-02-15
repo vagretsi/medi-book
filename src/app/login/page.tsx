@@ -23,12 +23,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <form action={login} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-6 text-center text-slate-800">MediBook Login</h1>
-        <input name="username" type="text" placeholder="Username" required className="w-full p-3 mb-4 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-        <input name="password" type="password" placeholder="Password" required className="w-full p-3 mb-6 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors">Είσοδος</button>
+    <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <form action={login} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-slate-200">
+        <h1 className="text-2xl font-bold mb-6 text-center text-slate-800 font-sans">MediBook Login</h1>
+        <div className="space-y-4">
+          <input name="username" type="text" placeholder="Username" required className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+          <input name="password" type="password" placeholder="Κωδικός" required className="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+          <button type="submit" className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors">Είσοδος</button>
+        </div>
       </form>
     </div>
   );
