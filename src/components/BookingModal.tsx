@@ -21,7 +21,7 @@ export default function BookingModal({ apt, onClose }: { apt: any, onClose: any 
         <div className="bg-slate-900 p-4 flex justify-between items-center text-white">
           <div>
             <h3 className="font-bold">Κράτηση Ραντεβού</h3>
-            <p className="text-xs text-slate-400">Ώρα: {new Date(apt.date).toLocaleTimeString('el-GR', {hour: '2-2-digit', minute:'2-2-digit'})}</p>
+            <p className="text-xs text-slate-400">Ώρα: {new Date(apt.date).toLocaleTimeString('el-GR', {hour: '2-digit', minute:'2-digit'})}</p>
           </div>
           <button onClick={onClose} className="hover:bg-white/20 rounded-full p-1 transition-colors">
             <X className="w-5 h-5" />
