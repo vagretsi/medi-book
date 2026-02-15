@@ -1,52 +1,35 @@
-import { PrismaClient } from "@prisma/client";
-import { format } from "date-fns";
-import { el } from "date-fns/locale";
-import { Calendar } from "lucide-react";
-import BookingManager from "@/components/BookingManager";
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export const dynamic = "force-dynamic";
-const prisma = new PrismaClient();
+export default function LoginPage() {
+  async function login(formData: FormData) {
+    'use server';
+    const usernameInput = formData.get('username') as string;
+    const passwordInput = formData.get('password') as string;
 
-export default async function SecretaryDashboard() {
-  const resources = await prisma.resource.findMany({
-    orderBy: { id: 'asc' },
-    include: {
-      appointments: {
-        where: { date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
-        orderBy: { date: "asc" },
-      },
-    },
-  });
+    const usernames = process.env.ALLOWED_USERNAMES?.split(',') || [];
+    const passwords = process.env.ALLOWED_PASSWORDS?.split(',') || [];
+    const userIndex = usernames.indexOf(usernameInput);
+
+    if (userIndex !== -1 && passwords[userIndex] === passwordInput) {
+      (await cookies()).set('admin_auth', 'true', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      redirect('/');
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-600 rounded-lg text-white"><Calendar className="w-6 h-6" /></div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 font-sans">MediBook</h1>
-            <p className="text-slate-500 text-sm font-sans">Πίνακας Ελέγχου Γραμματείας</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="font-mono text-xl text-blue-600 font-bold capitalize">
-            {format(new Date(), "EEEE, d MMMM yyyy", { locale: el })}
-          </p>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {resources.map((resource) => (
-          <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-            <div className={`p-5 border-b flex justify-between items-center ${resource.type === 'MEDICAL' ? 'bg-blue-50' : 'bg-rose-50'}`}>
-              <h2 className={`font-bold text-lg font-sans ${resource.type === 'MEDICAL' ? 'text-blue-700' : 'text-rose-700'}`}>{resource.name}</h2>
-            </div>
-            <div className="p-4 bg-slate-50/50 flex-1">
-              <BookingManager appointments={resource.appointments} />
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <form action={login} className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
+        <h1 className="text-2xl font-bold mb-6 text-center text-slate-800">MediBook Login</h1>
+        <input name="username" type="text" placeholder="Username" required className="w-full p-3 mb-4 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+        <input name="password" type="password" placeholder="Password" required className="w-full p-3 mb-6 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors">Είσοδος</button>
+      </form>
     </div>
   );
 }
