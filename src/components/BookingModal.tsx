@@ -3,13 +3,14 @@ import { useState } from 'react'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
 
-export default function BookingModal({ apt, onClose, onRefresh }: { apt: any, onClose: any, onRefresh: () => void }) {
+// ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
+export default function BookingModal({ apt, onClose, onRefresh }: { apt: any, onClose: any, onRefresh: any }) {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     await bookAppointment(formData)
-    await onRefresh()
+    await onRefresh() // Καλούμε το refresh μετά την κράτηση
     setLoading(false)
     onClose()
   }

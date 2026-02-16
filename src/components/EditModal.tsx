@@ -3,12 +3,14 @@ import { useState } from 'react'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
 import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
 
-export default function EditModal({ apt, onClose }: { apt: any, onClose: any }) {
+// ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
+export default function EditModal({ apt, onClose, onRefresh }: { apt: any, onClose: any, onRefresh: any }) {
   const [loading, setLoading] = useState(false)
 
   async function handleUpdate(formData: FormData) {
     setLoading(true)
     await updateAppointment(formData)
+    await onRefresh() // Καλούμε το refresh μετά την αλλαγή
     setLoading(false)
     onClose()
   }
@@ -17,6 +19,7 @@ export default function EditModal({ apt, onClose }: { apt: any, onClose: any }) 
     if(!confirm("Είστε σίγουροι για την ακύρωση;")) return;
     setLoading(true)
     await cancelAppointment(formData)
+    await onRefresh() // Καλούμε το refresh μετά την ακύρωση
     setLoading(false)
     onClose()
   }
