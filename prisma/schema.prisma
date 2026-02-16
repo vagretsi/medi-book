@@ -24,6 +24,9 @@ model Appointment {
   patientTel  String?
   notes       String?
 
+  // Default Duration
+  duration    Int      @default(30)  
+
   // Σύνδεση με Πόρο
   resourceId  Int
   resource    Resource @relation(fields: [resourceId], references: [id])
