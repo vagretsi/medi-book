@@ -100,3 +100,30 @@ export async function cancelAppointment(formData: FormData) {
   })
   revalidatePath('/')
 }
+
+// ... υπάρχον κώδικας ...
+
+// 6. GET DAY NOTE
+export async function getDayNote(dateStr: string) {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0); // Καθαρίζουμε την ώρα
+
+  const note = await prisma.dayNote.findUnique({
+    where: { date: date }
+  });
+  return note?.content || ""; // Αν δεν υπάρχει, επιστρέφει κενό
+}
+
+// 7. SAVE DAY NOTE (Auto-Save)
+export async function saveDayNote(dateStr: string, content: string) {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+
+  await prisma.dayNote.upsert({
+    where: { date: date },
+    update: { content },
+    create: { date, content }
+  });
+  
+  // Δεν κάνουμε revalidatePath εδώ για να μην αναβοσβήνει η οθόνη καθώς γράφει ο χρήστης
+}
