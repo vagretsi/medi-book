@@ -36,3 +36,10 @@ model Appointment {
   // Δεν γίνεται να κλείσεις τον ίδιο πόρο την ίδια ώρα
   @@unique([date, resourceId])
 }
+
+// Daily notes
+model DayNote {
+  id      Int      @id @default(autoincrement())
+  date    DateTime @unique
+  content String   @db.Text // Μεγάλο κείμενο
+}
