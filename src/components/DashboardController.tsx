@@ -79,7 +79,7 @@ export default function DashboardController({ initialData }: { initialData: any 
           </button>
         </div>
 
-        {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: LOADING & ΜΟΝΟ ΕΝΑ LOGOUT */}
+        {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: LOADING & LOGOUT */}
         <div className="flex items-center gap-4 min-w-[120px] justify-end">
           {loading && <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />}
           <button 
