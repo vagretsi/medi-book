@@ -1,34 +1,13 @@
 'use server'
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+
 import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 const prisma = new PrismaClient()
 
-export async function bookAppointment(formData: FormData) {
-  'use server'
-  const aptId = parseInt(formData.get('aptId') as string)
-  const name = formData.get('patientName') as string
-  const tel = formData.get('patientTel') as string
-  const notes = formData.get('notes') as string
-  // Προσθήκη διάρκειας
-  const duration = parseInt(formData.get('duration') as string) || 30 
-
-  await prisma.appointment.update({
-    where: { id: aptId },
-    data: {
-      status: 'BOOKED',
-      patientName: name,
-      patientTel: tel,
-      notes: notes,
-      duration: duration 
-    }
-  })
-}
-
-//  (without any changes in the url)
-
+// 1. FETCH DATA (Για το Refresh)
 export async function getDayAppointments(dateStr: string) {
   const selectedDate = new Date(dateStr);
   const startOfDay = new Date(selectedDate);
@@ -55,16 +34,41 @@ export async function getDayAppointments(dateStr: string) {
   return resources;
 }
 
-// ... (υπάρχον κώδικας)
+// 2. LOGOUT (Αυτό που έλειπε!)
+export async function logout() {
+  (await cookies()).delete('admin_auth');
+  redirect('/login');
+}
 
-// ΕΝΗΜΕΡΩΣΗ ΡΑΝΤΕΒΟΥ
-export async function updateAppointment(formData: FormData) {
-  'use server'
+// 3. BOOK APPOINTMENT (Νέα Κράτηση)
+export async function bookAppointment(formData: FormData) {
   const aptId = parseInt(formData.get('aptId') as string)
   const name = formData.get('patientName') as string
   const tel = formData.get('patientTel') as string
   const notes = formData.get('notes') as string
-  const duration = parseInt(formData.get('duration') as string)
+  // Προσθήκη διάρκειας (Default 30 αν λείπει)
+  const duration = parseInt(formData.get('duration') as string) || 30 
+
+  await prisma.appointment.update({
+    where: { id: aptId },
+    data: {
+      status: 'BOOKED',
+      patientName: name,
+      patientTel: tel,
+      notes: notes,
+      duration: duration
+    }
+  })
+  revalidatePath('/')
+}
+
+// 4. UPDATE APPOINTMENT (Επεξεργασία)
+export async function updateAppointment(formData: FormData) {
+  const aptId = parseInt(formData.get('aptId') as string)
+  const name = formData.get('patientName') as string
+  const tel = formData.get('patientTel') as string
+  const notes = formData.get('notes') as string
+  const duration = parseInt(formData.get('duration') as string) || 30
 
   await prisma.appointment.update({
     where: { id: aptId },
@@ -75,11 +79,11 @@ export async function updateAppointment(formData: FormData) {
       duration: duration
     }
   })
+  revalidatePath('/')
 }
 
-// ΑΚΥΡΩΣΗ ΡΑΝΤΕΒΟΥ (Επιστροφή σε FREE)
+// 5. CANCEL APPOINTMENT (Ακύρωση)
 export async function cancelAppointment(formData: FormData) {
-  'use server'
   const aptId = parseInt(formData.get('aptId') as string)
 
   await prisma.appointment.update({
@@ -89,7 +93,8 @@ export async function cancelAppointment(formData: FormData) {
       patientName: null,
       patientTel: null,
       notes: null,
-      duration: 30 // Reset duration
+      duration: 15 // Reset duration στο ελάχιστο (15λεπτο)
     }
   })
+  revalidatePath('/')
 }
