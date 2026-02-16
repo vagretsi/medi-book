@@ -7,6 +7,7 @@ import { signOut } from 'next-auth/react'
 import BookingManager from './BookingManager'
 import DailyNote from './DailyNote'
 import { getDayAppointments, getDayNote } from '@/app/actions'
+import { signOut } from 'next-auth/react'
 
 export default function DashboardController({ initialData }: { initialData: any }) {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -79,6 +80,7 @@ export default function DashboardController({ initialData }: { initialData: any 
           </button>
         </div>
 
+<<<<<<< HEAD
         {/* LOGOUT & LOADING */}
         <div className="flex items-center gap-4">
           {loading && <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />}
@@ -90,6 +92,21 @@ export default function DashboardController({ initialData }: { initialData: any 
             Έξοδος
           </button>
         </div>
+=======
+        <div className="hidden md:flex items-center justify-end gap-4 w-[200px]">
+  {loading && (
+    <div className="flex items-center gap-2 text-blue-400 text-xs font-bold animate-pulse">
+      <Loader2 className="w-4 h-4 animate-spin"/>
+    </div>
+  )}
+  <button 
+    onClick={() => signOut()} 
+    className="bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black px-4 py-2 rounded-xl border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
+  >
+    Έξοδος
+  </button>
+</div>
+>>>>>>> ebdd2cf899a8b7b6f2a3424e8e9143d91cc8b035
       </header>
 
       {/* GRID (3 COLUMNS) */}

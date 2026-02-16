@@ -26,11 +26,15 @@ export const authOptions: NextAuthOptions = {
 
         if (!isPasswordCorrect) return null;
 
+<<<<<<< HEAD
         return { 
           id: user.id.toString(), 
           name: user.username, 
           role: user.role 
         };
+=======
+        return { id: user.id.toString(), name: user.username, role: user.role };
+>>>>>>> ebdd2cf899a8b7b6f2a3424e8e9143d91cc8b035
       }
     })
   ],
