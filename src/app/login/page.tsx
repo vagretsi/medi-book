@@ -17,7 +17,7 @@ export default function LoginPage() {
     setError('')
 
     const res = await signIn('credentials', {
-      username,
+      username: username.toLowerCase(), // Το μετατρέπουμε σε πεζά για σιγουριά
       password,
       redirect: false,
     })
@@ -38,7 +38,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
             <Lock className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">MediBook</h1>
+          <h1 className="text-3xl font-black text-white tracking-tighter">MEDIBOOK</h1>
           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Restricted Access</p>
         </div>
 
@@ -47,8 +47,8 @@ export default function LoginPage() {
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
-              placeholder="USERNAME"
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all uppercase tracking-widest"
+              placeholder="Username"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all tracking-widest"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -59,8 +59,8 @@ export default function LoginPage() {
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="password"
-              placeholder="PASSWORD"
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all uppercase tracking-widest"
+              placeholder="Password"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all tracking-widest"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -74,7 +74,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Εισοδος'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Είσοδος'}
           </button>
         </form>
       </div>
