@@ -13,20 +13,20 @@ async function main() {
 
   console.log("🗑️  Τα ραντεβού καθαρίστηκαν.")
 
-  // 2. Δημιουργία ADMIN Χρήστη
-  const hashedPassword = await bcrypt.hash("admin123", 10) // <--- Ο ΚΩΔΙΚΟΣ ΣΟΥ ΕΔΩ
+ // 2. Δημιουργία ή Ενημέρωση ADMIN Χρήστη
+  const hashedPassword = await bcrypt.hash("admin123", 10);
   
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: {}, // Αν υπάρχει, δεν αλλάζουμε τίποτα
+    update: { 
+      password: hashedPassword // <--- ΠΡΟΣΘΕΣΕ ΑΥΤΟ για να ανανεώνεται ο κωδικός
+    }, 
     create: {
       username: 'admin',
       password: hashedPassword,
       role: 'ADMIN'
     }
-  })
-  console.log("👤 Ο χρήστης 'admin' δημιουργήθηκε (Pass: admin123)")
-
+  });
   // 3. Resources
   console.log("🚀 Γέμισμα με 15-λεπτα slots...")
   
