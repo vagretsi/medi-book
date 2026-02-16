@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { el } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Loader2 } from 'lucide-react'
@@ -10,9 +10,6 @@ export default function DashboardController({ initialData }: { initialData: any 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [resources, setResources] = useState(initialData)
   const [loading, setLoading] = useState(false)
-  
-  // Ref για το input του ημερολογίου
-  const dateInputRef = useRef<HTMLInputElement>(null)
 
   // 1. Λειτουργία Refresh (καλείται μετά από edit/delete)
   const refreshData = async () => {
@@ -26,18 +23,6 @@ export default function DashboardController({ initialData }: { initialData: any 
   useEffect(() => {
     refreshData()
   }, [currentDate])
-
-  // 2. Ειδική συνάρτηση για άνοιγμα ημερολογίου σε Desktop
-  const openCalendar = () => {
-    try {
-      if (dateInputRef.current) {
-        dateInputRef.current.showPicker() // Αυτό ανοίγει το native calendar στο Desktop
-      }
-    } catch (err) {
-      console.log("Browser doesn't support showPicker, falling back to focus")
-      dateInputRef.current?.focus()
-    }
-  }
 
   return (
     <div className="space-y-8">
@@ -54,17 +39,14 @@ export default function DashboardController({ initialData }: { initialData: any 
           </div>
         </div>
 
-        {/* ΗΜΕΡΟΛΟΓΙΟ */}
-        <div className="flex items-center gap-4 bg-slate-900/80 p-2 pr-4 pl-2 rounded-2xl border border-slate-700 shadow-inner relative group">
-          <button onClick={() => setCurrentDate(d => subDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-10">
+        {/* ΗΜΕΡΟΛΟΓΙΟ (MOBILE FIX) */}
+        <div className="flex items-center gap-4 bg-slate-900/80 p-2 pr-4 pl-2 rounded-2xl border border-slate-700 shadow-inner relative group z-10">
+          <button onClick={() => setCurrentDate(d => subDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
             <ChevronLeft className="w-5 h-5" />
           </button>
           
-          {/* ΚΛΙΚ ΕΔΩ ΓΙΑ ΗΜΕΡΟΛΟΓΙΟ */}
-          <div 
-            onClick={openCalendar}
-            className="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-xl hover:bg-white/5 transition-all relative"
-          >
+          {/* Container Ημερομηνίας */}
+          <div className="relative flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer">
             <CalendarDays className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-center min-w-[140px]">
               <span className="text-blue-400 font-bold text-xs uppercase tracking-widest">
@@ -75,11 +57,10 @@ export default function DashboardController({ initialData }: { initialData: any 
               </span>
             </div>
             
-            {/* ΚΡΥΦΟ INPUT ΠΟΥ ΑΝΟΙΓΕΙ ΤΟ POPUP */}
+            {/* ΤΟ ΜΑΓΙΚΟ INPUT: Καλύπτει τα πάντα από πάνω (inset-0), οπότε το touch πιάνει πάντα αυτό */}
             <input 
-              ref={dateInputRef}
               type="date" 
-              className="absolute top-10 left-0 w-0 h-0 opacity-0 pointer-events-none"
+              className="absolute inset-0 w-full h-full opacity-0 z-30 cursor-pointer" 
               value={format(currentDate, 'yyyy-MM-dd')}
               onChange={(e) => {
                 if(e.target.value) setCurrentDate(new Date(e.target.value))
@@ -87,7 +68,7 @@ export default function DashboardController({ initialData }: { initialData: any 
             />
           </div>
 
-          <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-10">
+          <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -112,7 +93,6 @@ export default function DashboardController({ initialData }: { initialData: any 
             </div>
             
             <div className="p-4 flex-1 overflow-y-auto max-h-[calc(100vh-250px)]">
-               {/* Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ: Προσθέσαμε το onRefresh={refreshData} */}
                <BookingManager appointments={resource.appointments} onRefresh={refreshData} />
             </div>
           </div>
