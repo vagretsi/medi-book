@@ -2,26 +2,17 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🚀 Ξεκινάει η δημιουργία προγράμματος...")
+  console.log("🚀 Γέμισμα με 15-λεπτα slots (08:00 - 22:00)...")
 
-  // 1. Δημιουργία/Εύρεση Ιατρείου & Laser
-  const iatreio = await prisma.resource.upsert({
-    where: { id: 1 },
-    update: {},
-    create: { name: 'ΙΑΤΡΕΙΟ', type: 'MEDICAL' }
-  })
-
-  const laser = await prisma.resource.upsert({
-    where: { id: 2 },
-    update: {},
-    create: { name: 'LASER', type: 'LASER' }
-  })
+  // 1. Resources
+  const iatreio = await prisma.resource.upsert({ where: { id: 1 }, update: {}, create: { name: 'ΙΑΤΡΕΙΟ', type: 'MEDICAL' }})
+  const laser = await prisma.resource.upsert({ where: { id: 2 }, update: {}, create: { name: 'LASER', type: 'LASER' }})
   
-  // 2. Ρυθμίσεις: 30 μέρες, 09:00-21:00, ανά 30 λεπτά
+  // 2. Ρυθμίσεις
   const daysToGenerate = 30; 
-  const startHour = 9;       
-  const endHour = 21;        
-  const intervalMinutes = 30; 
+  const startHour = 8;        // 08:00
+  const endHour = 22;         // 22:00
+  const intervalMinutes = 15; // <--- ΣΗΜΑΝΤΙΚΟ: Κάθε 15 λεπτά
 
   const startDate = new Date();
   startDate.setHours(0,0,0,0);
@@ -30,40 +21,25 @@ async function main() {
     const currentDate = new Date(startDate);
     currentDate.setDate(startDate.getDate() + i);
     
-    // Ωράριο για κάθε μέρα
     const timeCursor = new Date(currentDate);
     timeCursor.setHours(startHour, 0, 0, 0);
     const endTime = new Date(currentDate);
     endTime.setHours(endHour, 0, 0, 0);
 
-    while (timeCursor < endTime) {
-      // Slot Ιατρείου
-      const existsIatreio = await prisma.appointment.findFirst({
-        where: { resourceId: iatreio.id, date: timeCursor }
-      })
-      if (!existsIatreio) {
-        await prisma.appointment.create({
-          data: { date: timeCursor, resourceId: iatreio.id, status: 'FREE' }
-        })
-      }
-
-      // Slot Laser
-      const existsLaser = await prisma.appointment.findFirst({
-        where: { resourceId: laser.id, date: timeCursor }
-      })
-      if (!existsLaser) {
-        await prisma.appointment.create({
-          data: { date: timeCursor, resourceId: laser.id, status: 'FREE' }
-        })
-      }
+    while (timeCursor < endTime) { // < αντί για <= για να μην φτιάξει slot στις 22:00 ακριβώς
       
-      // +30 λεπτά
+      // IATREIO
+      const existsIatreio = await prisma.appointment.findFirst({ where: { resourceId: iatreio.id, date: timeCursor }})
+      if (!existsIatreio) await prisma.appointment.create({ data: { date: timeCursor, resourceId: iatreio.id, status: 'FREE', duration: 15 }})
+
+      // LASER
+      const existsLaser = await prisma.appointment.findFirst({ where: { resourceId: laser.id, date: timeCursor }})
+      if (!existsLaser) await prisma.appointment.create({ data: { date: timeCursor, resourceId: laser.id, status: 'FREE', duration: 15 }})
+      
       timeCursor.setMinutes(timeCursor.getMinutes() + intervalMinutes);
     }
   }
-  console.log("✅ Έτοιμο! Το πρόγραμμα γέμισε.")
+  console.log("✅ Έτοιμο! Το timeline είναι έτοιμο.")
 }
 
-main()
-  .catch((e) => console.error(e))
-  .finally(async () => await prisma.$disconnect())
+main().catch((e) => console.error(e)).finally(async () => await prisma.$disconnect())

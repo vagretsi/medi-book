@@ -7,25 +7,24 @@ import { revalidatePath } from 'next/cache'
 const prisma = new PrismaClient()
 
 export async function bookAppointment(formData: FormData) {
-  const aptId = Number(formData.get('aptId'))
-  const patientName = formData.get('patientName') as string
-  const patientTel = formData.get('patientTel') as string
+  'use server'
+  const aptId = parseInt(formData.get('aptId') as string)
+  const name = formData.get('patientName') as string
+  const tel = formData.get('patientTel') as string
   const notes = formData.get('notes') as string
+  // Προσθήκη διάρκειας
+  const duration = parseInt(formData.get('duration') as string) || 30 
 
-  try {
-    await prisma.appointment.update({
-      where: { id: aptId },
-      data: { patientName, patientTel, notes, status: 'BOOKED' }
-    })
-    revalidatePath('/')
-    return { success: true }
-  } catch (e) {
-    return { success: false }
-  }
-}
-export async function logout() {
-  (await cookies()).delete('admin_auth');
-  redirect('/login');
+  await prisma.appointment.update({
+    where: { id: aptId },
+    data: {
+      status: 'BOOKED',
+      patientName: name,
+      patientTel: tel,
+      notes: notes,
+      duration: duration 
+    }
+  })
 }
 
 //  (without any changes in the url)
