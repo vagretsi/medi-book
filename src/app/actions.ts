@@ -55,3 +55,42 @@ export async function getDayAppointments(dateStr: string) {
   
   return resources;
 }
+
+// ... (υπάρχον κώδικας)
+
+// ΕΝΗΜΕΡΩΣΗ ΡΑΝΤΕΒΟΥ
+export async function updateAppointment(formData: FormData) {
+  'use server'
+  const aptId = parseInt(formData.get('aptId') as string)
+  const name = formData.get('patientName') as string
+  const tel = formData.get('patientTel') as string
+  const notes = formData.get('notes') as string
+  const duration = parseInt(formData.get('duration') as string)
+
+  await prisma.appointment.update({
+    where: { id: aptId },
+    data: {
+      patientName: name,
+      patientTel: tel,
+      notes: notes,
+      duration: duration
+    }
+  })
+}
+
+// ΑΚΥΡΩΣΗ ΡΑΝΤΕΒΟΥ (Επιστροφή σε FREE)
+export async function cancelAppointment(formData: FormData) {
+  'use server'
+  const aptId = parseInt(formData.get('aptId') as string)
+
+  await prisma.appointment.update({
+    where: { id: aptId },
+    data: {
+      status: 'FREE',
+      patientName: null,
+      patientTel: null,
+      notes: null,
+      duration: 30 // Reset duration
+    }
+  })
+}
