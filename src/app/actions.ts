@@ -34,19 +34,19 @@ export async function getDayAppointments(dateStr: string) {
   return resources;
 }
 
-// 2. LOGOUT (Αυτό που έλειπε!)
+// 2. LOGOUT
 export async function logout() {
   (await cookies()).delete('admin_auth');
   redirect('/login');
 }
 
-// 3. BOOK APPOINTMENT (Νέα Κράτηση)
+// 3. BOOK APPOINTMENT
 export async function bookAppointment(formData: FormData) {
   const aptId = parseInt(formData.get('aptId') as string)
   const name = formData.get('patientName') as string
   const tel = formData.get('patientTel') as string
   const notes = formData.get('notes') as string
-  // Προσθήκη διάρκειας (Default 30 αν λείπει)
+  // Default 30 λεπτά αν δεν επιλεγεί κάτι
   const duration = parseInt(formData.get('duration') as string) || 30 
 
   await prisma.appointment.update({
@@ -62,7 +62,7 @@ export async function bookAppointment(formData: FormData) {
   revalidatePath('/')
 }
 
-// 4. UPDATE APPOINTMENT (Επεξεργασία)
+// 4. UPDATE APPOINTMENT
 export async function updateAppointment(formData: FormData) {
   const aptId = parseInt(formData.get('aptId') as string)
   const name = formData.get('patientName') as string
@@ -82,7 +82,7 @@ export async function updateAppointment(formData: FormData) {
   revalidatePath('/')
 }
 
-// 5. CANCEL APPOINTMENT (Ακύρωση)
+// 5. CANCEL APPOINTMENT
 export async function cancelAppointment(formData: FormData) {
   const aptId = parseInt(formData.get('aptId') as string)
 
@@ -93,7 +93,9 @@ export async function cancelAppointment(formData: FormData) {
       patientName: null,
       patientTel: null,
       notes: null,
-      duration: 15 // Reset duration στο ελάχιστο (15λεπτο)
+      // ΣΗΜΑΝΤΙΚΟ: Το επαναφέρουμε σε 15 για να ταιριάζει με το Grid του timeline
+      // Αν ο χρήστης θέλει 30, θα επιλέξει "30 λεπτά" όταν πατήσει "Κράτηση"
+      duration: 15 
     }
   })
   revalidatePath('/')
