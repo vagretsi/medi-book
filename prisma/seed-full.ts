@@ -1,20 +1,38 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs' // <--- ΝΕΟ IMPORT
+
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log("🛠️  Διόρθωση ονόματος & Hard Reset...")
+  console.log("🛠️  HARD RESET & ADMIN CREATION...")
   
-  // 1. Καθαρισμός Appointments
+  // 1. Καθαρισμός
   await prisma.appointment.deleteMany({})
-  console.log("🗑️  Η βάση άδειασε.")
+  // Προσοχή: Δεν διαγράφουμε τα DayNotes ή τους Users κάθε φορά, αλλά για τώρα ας τα αφήσουμε
+  // Αν θες να σβήνεις και users: await prisma.user.deleteMany({}) 
 
-  console.log("🚀 Γέμισμα με 15-λεπτα slots (08:00 - 22:00)...")
+  console.log("🗑️  Τα ραντεβού καθαρίστηκαν.")
 
-  // 2. Resources (ΕΔΩ ΕΓΙΝΕ Η ΑΛΛΑΓΗ)
-  // Πλέον λέμε ρητά: Αν υπάρχει, ΑΛΛΑΞΕ το όνομα σε 'ΙΑΤΡΕΙΟ'
+  // 2. Δημιουργία ADMIN Χρήστη
+  const hashedPassword = await bcrypt.hash("admin123", 10) // <--- Ο ΚΩΔΙΚΟΣ ΣΟΥ ΕΔΩ
+  
+  const admin = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: {}, // Αν υπάρχει, δεν αλλάζουμε τίποτα
+    create: {
+      username: 'admin',
+      password: hashedPassword,
+      role: 'ADMIN'
+    }
+  })
+  console.log("👤 Ο χρήστης 'admin' δημιουργήθηκε (Pass: admin123)")
+
+  // 3. Resources
+  console.log("🚀 Γέμισμα με 15-λεπτα slots...")
+  
   const iatreio = await prisma.resource.upsert({ 
     where: { id: 1 }, 
-    update: { name: 'ΙΑΤΡΕΙΟ' }, // <--- ΑΥΤΟ ΤΟ ΦΤΙΑΧΝΕΙ
+    update: { name: 'ΙΑΤΡΕΙΟ' }, 
     create: { name: 'ΙΑΤΡΕΙΟ', type: 'MEDICAL' }
   })
 
@@ -24,7 +42,7 @@ async function main() {
     create: { name: 'LASER', type: 'LASER' }
   })
   
-  // 3. Ρυθμίσεις
+  // 4. Ρυθμίσεις Ωραρίου
   const daysToGenerate = 45; 
   const startHour = 8;
   const endHour = 22;
@@ -54,7 +72,7 @@ async function main() {
       timeCursor.setMinutes(timeCursor.getMinutes() + intervalMinutes);
     }
   }
-  console.log("✅ Έτοιμο! Το όνομα άλλαξε σε 'ΙΑΤΡΕΙΟ'.")
+  console.log("✅ Έτοιμο! Admin & Πρόγραμμα δημιουργήθηκαν.")
 }
 
 main()
