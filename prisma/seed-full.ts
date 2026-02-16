@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("🚀 Ξεκινάει η δημιουργία προγράμματος...")
 
-  // 1. Διασφάλιση Resources (Αν δεν υπάρχουν, τα φτιάχνει)
+  // 1. Δημιουργία/Εύρεση Ιατρείου & Laser
   const iatreio = await prisma.resource.upsert({
     where: { id: 1 },
     update: {},
@@ -17,32 +17,27 @@ async function main() {
     create: { name: 'LASER', type: 'LASER' }
   })
   
-  // 2. Ρυθμίσεις Γεννήτριας
-  const daysToGenerate = 30; // Για πόσες μέρες μπροστά
-  const startHour = 9;       // 09:00
-  const endHour = 21;        // 21:00
-  const intervalMinutes = 30; // Κάθε 30 λεπτά
+  // 2. Ρυθμίσεις: 30 μέρες, 09:00-21:00, ανά 30 λεπτά
+  const daysToGenerate = 30; 
+  const startHour = 9;       
+  const endHour = 21;        
+  const intervalMinutes = 30; 
 
   const startDate = new Date();
   startDate.setHours(0,0,0,0);
 
-  // 3. Loop για κάθε μέρα
   for (let i = 0; i < daysToGenerate; i++) {
     const currentDate = new Date(startDate);
     currentDate.setDate(startDate.getDate() + i);
-
-    console.log(`📅 Επεξεργασία: ${currentDate.toDateString()}`);
-
-    // Loop για τις ώρες της ημέρας
+    
+    // Ωράριο για κάθε μέρα
     const timeCursor = new Date(currentDate);
     timeCursor.setHours(startHour, 0, 0, 0);
-    
     const endTime = new Date(currentDate);
     endTime.setHours(endHour, 0, 0, 0);
 
     while (timeCursor < endTime) {
-      
-      // Δημιουργία για ΙΑΤΡΕΙΟ
+      // Slot Ιατρείου
       const existsIatreio = await prisma.appointment.findFirst({
         where: { resourceId: iatreio.id, date: timeCursor }
       })
@@ -52,7 +47,7 @@ async function main() {
         })
       }
 
-      // Δημιουργία για LASER
+      // Slot Laser
       const existsLaser = await prisma.appointment.findFirst({
         where: { resourceId: laser.id, date: timeCursor }
       })
@@ -61,13 +56,12 @@ async function main() {
           data: { date: timeCursor, resourceId: laser.id, status: 'FREE' }
         })
       }
-
-      // Προχωράμε 30 λεπτά
+      
+      // +30 λεπτά
       timeCursor.setMinutes(timeCursor.getMinutes() + intervalMinutes);
     }
   }
-  
-  console.log("✅ Ολοκληρώθηκε! Το πρόγραμμα γέμισε.")
+  console.log("✅ Έτοιμο! Το πρόγραμμα γέμισε.")
 }
 
 main()

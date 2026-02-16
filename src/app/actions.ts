@@ -27,3 +27,31 @@ export async function logout() {
   (await cookies()).delete('admin_auth');
   redirect('/login');
 }
+
+//  (without any changes in the url)
+
+export async function getDayAppointments(dateStr: string) {
+  const selectedDate = new Date(dateStr);
+  const startOfDay = new Date(selectedDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(selectedDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const resources = await prisma.resource.findMany({
+    orderBy: { id: 'asc' },
+    include: {
+      appointments: {
+        where: { 
+          date: { 
+            gte: startOfDay,
+            lte: endOfDay
+          } 
+        },
+        orderBy: { date: "asc" },
+      },
+    },
+  });
+  
+  return resources;
+}
