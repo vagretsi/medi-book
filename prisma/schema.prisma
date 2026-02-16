@@ -43,3 +43,13 @@ model DayNote {
   date    DateTime @unique
   content String   @db.Text // Μεγάλο κείμενο
 }
+
+//user
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // Θα αποθηκεύεται κρυπτογραφημένο (Hashed)
+  role      String   @default("USER") // "ADMIN" ή "USER"
+  createdAt DateTime @default(now())
+}
