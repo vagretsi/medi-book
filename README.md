@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MediBook
 
-## Getting Started
+> **The Next-Gen Medical Management Platform**
 
-First, run the development server:
+**MediBook** is a high-performance, type-safe medical ecosystem designed for modern clinics and private practices. It leverages the **"1% Stack"** to provide a lightning-fast experience for both healthcare providers and patients.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ⚡ The 1% Stack
+
+Built with the most efficient tools in the industry to ensure maximum performance and developer productivity:
+
+* **Framework:** [Next.js 14+](https://www.google.com/search?q=https://nextjs.org/) (App Router & Server Actions)
+* **Database:** PostgreSQL
+* **ORM:** [Drizzle ORM](https://www.google.com/search?q=https://orm.drizzle.team/) (The fastest TypeScript ORM)
+* **Styling:** [Tailwind CSS](https://www.google.com/search?q=https://tailwindcss.com/)
+* **Components:** [Shadcn UI](https://www.google.com/search?q=https://ui.shadcn.com/)
+* **Validation:** [Zod](https://www.google.com/search?q=https://zod.dev/)
+* **Icons:** [Lucide React](https://www.google.com/search?q=https://lucide.dev/)
+
+## 🛠 Features
+
+* **Smart Scheduling:** Real-time appointment booking with collision detection.
+* **Patient Records (EMR):** Secure and structured storage of patient history and clinical notes.
+* **Type-Safe API:** End-to-end type safety using Next.js Server Actions.
+* **Modern UI:** Dark/Light mode support with a focus on medical accessibility.
+* **Fast Search:** Optimized database queries for instant patient retrieval.
+
+* **Declarative Data Processing:** Utilized stream-like functional patterns in JavaScript (filter, map, reduce) for efficient and readable appointment filtering.
+
+## 📂 Architecture
+
+```text
+src/
+├── app/            # App Router (Pages & Layouts)
+├── components/     # Reusable UI components (Shadcn)
+├── db/             # Database schema, migrations & Drizzle config
+├── lib/            # Shared logic (auth, validators, utils)
+└── server/         # Server Actions & backend logic
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Getting Started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Clone the repository:**
+```bash
+git clone https://github.com/yourusername/medibook.git
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+2. **Install dependencies:**
+```bash
+npm install
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+3. **Environment Setup:**
+Create a `.env` file with your `DATABASE_URL`.
+4. **Database Sync:**
+```bash
+npx drizzle-kit push:pg
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+5. **Run Dev Server:**
+```bash
+npm run dev
+
+```
