@@ -4,7 +4,7 @@
 
 **MediBook** is a high-performance, type-safe medical ecosystem designed for modern clinics and private practices. It leverages the **"1% Stack"** to provide a lightning-fast experience for both healthcare providers and patients.
 
-## ⚡ The 1% Stack
+## ⚡ The Stack
 
 Built with the most efficient tools in the industry to ensure maximum performance and developer productivity:
 
