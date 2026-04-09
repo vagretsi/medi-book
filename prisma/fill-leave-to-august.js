@@ -92,6 +92,21 @@ function buildPatterns(appointments) {
   return Array.from(uniquePatterns.values())
 }
 
+function buildDemoPatterns(resources) {
+  const duration = (END_HOUR - START_HOUR) * 60
+
+  return resources.map((resource) => ({
+    resourceId: resource.id,
+    weekday: null,
+    hour: START_HOUR,
+    minute: 0,
+    duration,
+    patientName: 'ΑΔΕΙΑ',
+    patientTel: '-',
+    notes: 'Demo leave block',
+  }))
+}
+
 function summarizeAppointments(appointments) {
   const grouped = new Map()
 
@@ -216,7 +231,9 @@ async function applyPatterns(patterns) {
   let skippedConflicts = 0
 
   for (const day of eachDay(TARGET_START, TARGET_END)) {
-    const weekdayPatterns = patterns.filter((pattern) => pattern.weekday === day.getDay())
+    const weekdayPatterns = patterns.filter(
+      (pattern) => pattern.weekday === null || pattern.weekday === day.getDay(),
+    )
 
     for (const pattern of weekdayPatterns) {
       if (!canApplyPattern(pattern, day, appointmentsByKey)) {
@@ -311,21 +328,23 @@ async function main() {
   }
 
   if (leavePatterns.length === 0) {
-    const summary = summarizeAppointments(marchAppointments)
-    console.log(`BOOKED rows στον Μάρτιο ${SOURCE_YEAR}: ${marchAppointments.length}`)
-    console.log('Διαθέσιμα labels/combos για έλεγχο:')
-    console.log(JSON.stringify(summary, null, 2))
-    throw new Error(
-      `Δεν βρήκα leave blocks στον Μάρτιο ${SOURCE_YEAR}. Έλεγξε τα LEAVE_KEYWORDS ή τα patientName/notes των blocks.`,
+    console.log(
+      `Δεν βρέθηκε March leave pattern για το ${SOURCE_YEAR}. Γίνεται fallback σε γενικά demo leave blocks.`,
     )
   }
 
-  console.log(`Βρέθηκαν ${leavePatterns.length} μοναδικά leave patterns από τον Μάρτιο ${SOURCE_YEAR}.`)
+  const patternsToApply = leavePatterns.length > 0 ? leavePatterns : buildDemoPatterns(resources)
+
+  if (leavePatterns.length > 0) {
+    console.log(`Βρέθηκαν ${leavePatterns.length} μοναδικά leave patterns από τον Μάρτιο ${SOURCE_YEAR}.`)
+  } else {
+    console.log(`Θα εφαρμοστούν ${patternsToApply.length} γενικά demo leave patterns.`)
+  }
 
   const createdSlots = await ensureSlotsExist(resources.map((resource) => resource.id))
   console.log(`Δημιουργήθηκαν ${createdSlots} νέα FREE slots μέχρι 31 Αυγούστου ${SOURCE_YEAR}.`)
 
-  const { updatedCount, skippedConflicts } = await applyPatterns(leavePatterns)
+  const { updatedCount, skippedConflicts } = await applyPatterns(patternsToApply)
   console.log(`Ενημερώθηκαν ${updatedCount} blocks ως leave.`)
 
   if (skippedConflicts > 0) {
