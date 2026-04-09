@@ -1,15 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import DashboardController from "@/components/DashboardController";
+import { ensureDaySlots, getDayBounds } from "@/lib/day-slots";
 
 export const dynamic = "force-dynamic";
 const prisma = new PrismaClient();
 
 export default async function Page() {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  const today = new Date();
+  const { startOfDay, endOfDay } = getDayBounds(today);
+
+  await ensureDaySlots(prisma, today);
 
   const initialResources = await prisma.resource.findMany({
     orderBy: { id: 'asc' },

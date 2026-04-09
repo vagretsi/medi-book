@@ -4,17 +4,16 @@ import { PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { ensureDaySlots, getDayBounds } from '@/lib/day-slots'
 
 const prisma = new PrismaClient()
 
 // 1. FETCH DATA (Για το Refresh)
 export async function getDayAppointments(dateStr: string) {
-  const selectedDate = new Date(dateStr);
-  const startOfDay = new Date(selectedDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date(selectedDate);
-  endOfDay.setHours(23, 59, 59, 999);
+  const selectedDate = new Date(dateStr)
+  const { startOfDay, endOfDay } = getDayBounds(selectedDate)
+
+  await ensureDaySlots(prisma, selectedDate)
 
   const resources = await prisma.resource.findMany({
     orderBy: { id: 'asc' },
@@ -29,9 +28,9 @@ export async function getDayAppointments(dateStr: string) {
         orderBy: { date: "asc" },
       },
     },
-  });
+  })
   
-  return resources;
+  return resources
 }
 
 // 2. LOGOUT
@@ -105,13 +104,13 @@ export async function cancelAppointment(formData: FormData) {
 
 // 6. GET DAY NOTE
 export async function getDayNote(dateStr: string) {
-  const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0); // Καθαρίζουμε την ώρα
+  const date = new Date(dateStr)
+  date.setHours(0, 0, 0, 0)
 
   const note = await prisma.dayNote.findUnique({
     where: { date: date }
-  });
-  return note?.content || ""; // Αν δεν υπάρχει, επιστρέφει κενό
+  })
+  return note?.content || ""
 }
 
 // 7. SAVE DAY NOTE (Auto-Save)
