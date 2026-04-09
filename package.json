@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "fill:leave-to-august": "node prisma/fill-leave-to-august.js"
+    "fill:leave-to-august": "node prisma/fill-leave-to-august.js",
+    "inspect:leave-source": "LEAVE_INSPECT=1 node prisma/fill-leave-to-august.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",

@@ -9,6 +9,7 @@ const TARGET_END = new Date(SOURCE_YEAR, 7, 31, 23, 59, 59, 999)
 const SLOT_INTERVAL_MINUTES = 15
 const START_HOUR = parseInt(process.env.LEAVE_START_HOUR || '8', 10)
 const END_HOUR = parseInt(process.env.LEAVE_END_HOUR || '22', 10)
+const INSPECT_ONLY = process.env.LEAVE_INSPECT === '1'
 const LEAVE_KEYWORDS = (process.env.LEAVE_KEYWORDS || 'ADEIA,ΑΔΕΙΑ,adeia,άδεια,leave,vacation')
   .split(',')
   .map((value) => value.trim().toLowerCase())
@@ -89,6 +90,39 @@ function buildPatterns(appointments) {
   }
 
   return Array.from(uniquePatterns.values())
+}
+
+function summarizeAppointments(appointments) {
+  const grouped = new Map()
+
+  for (const appointment of appointments) {
+    const key = [
+      appointment.resourceId,
+      appointment.patientName || '',
+      appointment.patientTel || '',
+      appointment.notes || '',
+      appointment.duration,
+    ].join('|')
+
+    const current = grouped.get(key) || {
+      resourceId: appointment.resourceId,
+      patientName: appointment.patientName,
+      patientTel: appointment.patientTel,
+      notes: appointment.notes,
+      duration: appointment.duration,
+      count: 0,
+      samples: [],
+    }
+
+    current.count += 1
+    if (current.samples.length < 5) {
+      current.samples.push(appointment.date.toISOString())
+    }
+
+    grouped.set(key, current)
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => b.count - a.count)
 }
 
 async function ensureSlotsExist(resourceIds) {
@@ -269,7 +303,18 @@ async function main() {
 
   const leavePatterns = buildPatterns(marchAppointments)
 
+  if (INSPECT_ONLY) {
+    const summary = summarizeAppointments(marchAppointments)
+    console.log(`BOOKED rows στον Μάρτιο ${SOURCE_YEAR}: ${marchAppointments.length}`)
+    console.log(JSON.stringify(summary, null, 2))
+    return
+  }
+
   if (leavePatterns.length === 0) {
+    const summary = summarizeAppointments(marchAppointments)
+    console.log(`BOOKED rows στον Μάρτιο ${SOURCE_YEAR}: ${marchAppointments.length}`)
+    console.log('Διαθέσιμα labels/combos για έλεγχο:')
+    console.log(JSON.stringify(summary, null, 2))
     throw new Error(
       `Δεν βρήκα leave blocks στον Μάρτιο ${SOURCE_YEAR}. Έλεγξε τα LEAVE_KEYWORDS ή τα patientName/notes των blocks.`,
     )
