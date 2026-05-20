@@ -1,21 +1,34 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { el } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Loader2, LogOut } from 'lucide-react'
-import { signOut } from 'next-auth/react' 
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Loader2, LogOut, UserRound } from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react' 
 import BookingManager from './BookingManager'
 import DailyNote from './DailyNote'
 import { getDayAppointments, getDayNote } from '@/app/actions'
 import type { CalendarResource } from '@/lib/calendar-types'
 
 export default function DashboardController({ initialData, initialDayNote }: { initialData: CalendarResource[], initialDayNote: string }) {
+  const { data: session } = useSession()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [resources, setResources] = useState(initialData)
   const [dayNote, setDayNote] = useState(initialDayNote)
   const [loading, setLoading] = useState(false)
   const dateInputRef = useRef<HTMLInputElement>(null)
   const canWriteAnyCalendar = resources.some((resource) => resource.canWrite)
+  const username = session?.user?.name || 'Χρήστης'
+  const calendarLabel = useMemo(() => {
+    if (resources.length === 0) return 'Κανένα ημερολόγιο'
+
+    const groupNames = Array.from(new Set(resources.map((resource) => resource.groupName).filter(Boolean)))
+    const calendarNames = resources.map((resource) => resource.name)
+    const visibleCalendars = calendarNames.length > 2
+      ? `${calendarNames.slice(0, 2).join(', ')} +${calendarNames.length - 2}`
+      : calendarNames.join(', ')
+
+    return groupNames.length === 1 ? `${groupNames[0]} · ${visibleCalendars}` : visibleCalendars
+  }, [resources])
 
   const refreshData = useCallback(async (targetDate = currentDate) => {
     setLoading(true)
@@ -85,12 +98,26 @@ export default function DashboardController({ initialData, initialDayNote }: { i
           </button>
         </div>
 
-        {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: LOADING & LOGOUT (MONO ENA!) */}
-        <div className="flex items-center gap-4 min-w-[120px] justify-end">
+        {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: CONTEXT, LOADING & LOGOUT */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 min-w-[120px] justify-end w-full md:w-auto">
+          <div className="flex items-center gap-3 bg-slate-900/70 border border-slate-700/70 rounded-2xl px-4 py-3 min-w-0">
+            <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Ημερολόγιο</p>
+              <p className="text-xs font-black text-white uppercase tracking-tight truncate max-w-[260px]">{calendarLabel}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-slate-900/70 border border-slate-700/70 rounded-2xl px-4 py-3 min-w-0">
+            <UserRound className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Χρήστης</p>
+              <p className="text-xs font-black text-white uppercase tracking-tight truncate max-w-[140px]">{username}</p>
+            </div>
+          </div>
           {loading && <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />}
           <button 
             onClick={() => signOut()} 
-            className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black px-4 py-2 rounded-xl border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
+            className="flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black px-4 py-3 rounded-xl border border-red-500/20 transition-all uppercase tracking-widest active:scale-95"
           >
             <LogOut className="w-3.5 h-3.5" />
             Έξοδος
