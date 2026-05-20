@@ -87,7 +87,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Είσοδος'}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Login'}
           </button>
         </form>
       </div>
