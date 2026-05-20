@@ -48,13 +48,18 @@ async function requireCurrentUser(): Promise<CurrentUser> {
   }
 }
 
-function isAdmin(user: CurrentUser) {
-  return user.role === 'ADMIN'
+function isSuperAdmin(user: CurrentUser) {
+  return user.role === 'SUPER_ADMIN'
+}
+
+function canWriteGroup(user: CurrentUser) {
+  return user.role === 'ADMIN' || user.canWrite
 }
 
 async function userCanWriteAnyResource(user: CurrentUser) {
-  if (isAdmin(user)) return true
-  if (user.groupId) return user.canWrite
+  if (isSuperAdmin(user)) return true
+  if (user.groupId) return canWriteGroup(user)
+  if (user.role === 'ADMIN') return true
 
   const access = await prisma.resourceAccess.findFirst({
     where: { userId: user.id, canWrite: true },
@@ -70,7 +75,7 @@ async function requireAppointmentWriteAccess(aptId: number) {
   }
 
   const user = await requireCurrentUser()
-  if (isAdmin(user)) return
+  if (isSuperAdmin(user)) return
 
   const appointment = await prisma.appointment.findUnique({
     where: { id: aptId },
@@ -87,9 +92,11 @@ async function requireAppointmentWriteAccess(aptId: number) {
   }
 
   if (user.groupId) {
-    if (appointment.resource.groupId === user.groupId && user.canWrite) return
+    if (appointment.resource.groupId === user.groupId && canWriteGroup(user)) return
     throw new Error('Δεν έχεις δικαίωμα επεξεργασίας για αυτό το ημερολόγιο.')
   }
+
+  if (user.role === 'ADMIN' && appointment.resource.groupId === null) return
 
   const access = await prisma.resourceAccess.findUnique({
     where: {
@@ -115,10 +122,12 @@ export async function getDayAppointments(dateStr: string): Promise<CalendarResou
   await ensureDaySlots(prisma, selectedDate)
 
   const resources = await prisma.resource.findMany({
-    where: isAdmin(user)
+    where: isSuperAdmin(user)
       ? {}
       : user.groupId
         ? { groupId: user.groupId }
+        : user.role === 'ADMIN'
+          ? { groupId: null }
       : {
           accesses: {
             some: { userId: user.id },
@@ -150,7 +159,7 @@ export async function getDayAppointments(dateStr: string): Promise<CalendarResou
     return {
       ...rest,
       groupName: group?.name || null,
-      canWrite: isAdmin(user) || (user.groupId ? user.canWrite : accesses.some((access) => access.canWrite)),
+      canWrite: isSuperAdmin(user) || (user.groupId ? canWriteGroup(user) : user.role === 'ADMIN' || accesses.some((access) => access.canWrite)),
     }
   })
 }

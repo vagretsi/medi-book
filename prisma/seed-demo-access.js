@@ -5,6 +5,9 @@ const prisma = new PrismaClient()
 
 const DEMO_USERNAME = 'demo'
 const DEMO_PASSWORD = 'demo'
+const ADMIN_USERNAME = 'admin'
+const INTERNAL_GROUP_NAME = 'MediBook Internal'
+const INTERNAL_GROUP_SLUG = 'medibook-internal'
 const DEMO_GROUP_NAME = 'Demo Company'
 const DEMO_GROUP_SLUG = 'demo-company'
 const DEMO_RESOURCE_NAME = 'DEMO ΗΜΕΡΟΛΟΓΙΟ'
@@ -54,6 +57,15 @@ async function ensureDemoSlots(resourceId) {
 async function main() {
   const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10)
 
+  const internalGroup = await prisma.calendarGroup.upsert({
+    where: { slug: INTERNAL_GROUP_SLUG },
+    update: { name: INTERNAL_GROUP_NAME },
+    create: {
+      name: INTERNAL_GROUP_NAME,
+      slug: INTERNAL_GROUP_SLUG,
+    },
+  })
+
   const demoGroup = await prisma.calendarGroup.upsert({
     where: { slug: DEMO_GROUP_SLUG },
     update: { name: DEMO_GROUP_NAME },
@@ -61,6 +73,32 @@ async function main() {
       name: DEMO_GROUP_NAME,
       slug: DEMO_GROUP_SLUG,
     },
+  })
+
+  await prisma.user.updateMany({
+    where: { username: ADMIN_USERNAME },
+    data: {
+      role: 'ADMIN',
+      groupId: internalGroup.id,
+      canWrite: true,
+    },
+  })
+
+  await prisma.resource.updateMany({
+    where: {
+      OR: [
+        { id: 1 },
+        { id: 2 },
+        { name: 'ΙΑΤΡΕΙΟ' },
+        { name: 'LASER' },
+      ],
+    },
+    data: { groupId: internalGroup.id },
+  })
+
+  await prisma.dayNote.updateMany({
+    where: { groupId: null },
+    data: { groupId: internalGroup.id },
   })
 
   const demoUser = await prisma.user.upsert({
@@ -126,6 +164,7 @@ async function main() {
       groupId: demoUser.groupId,
       canWrite: demoUser.canWrite,
     },
+    internalGroup,
     group: demoGroup,
     resource: demoResource,
   })
