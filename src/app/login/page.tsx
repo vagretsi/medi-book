@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Lock, User, Loader2 } from 'lucide-react'
+import { Lock, User, Loader2, KeyRound } from 'lucide-react'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -40,6 +40,19 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-black text-white tracking-tighter">MEDIBOOK</h1>
           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Restricted Access</p>
+        </div>
+
+        <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-slate-200">
+          <div className="flex items-start gap-3">
+            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-blue-200">Demo access</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Use <span className="font-bold text-white">demo</span> for username and{' '}
+                <span className="font-bold text-white">demo</span> for password.
+              </p>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
