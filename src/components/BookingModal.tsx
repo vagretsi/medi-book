@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
 import type { AppointmentSlot } from '@/lib/calendar-types'
+import { formatBusinessTime } from '@/lib/business-time'
 
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
 export default function BookingModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
@@ -25,7 +26,7 @@ export default function BookingModal({ apt, onClose, onRefresh }: { apt: Appoint
             <div>
               <h3 className="font-bold text-lg leading-tight">Νέα Κράτηση</h3>
               <p className="text-blue-200 text-xs font-mono uppercase tracking-widest">
-                Έναρξη: {new Date(apt.date).toLocaleTimeString('el-GR', {hour: '2-digit', minute:'2-digit'})}
+                Έναρξη: {formatBusinessTime(apt.date)}
               </p>
             </div>
           </div>

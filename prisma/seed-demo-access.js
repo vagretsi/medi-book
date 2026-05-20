@@ -1,10 +1,12 @@
-import { Prisma, PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 
 const prisma = new PrismaClient()
 
 const DEMO_USERNAME = 'demo'
 const DEMO_PASSWORD = 'demo'
+const DEMO_GROUP_NAME = 'Demo Company'
+const DEMO_GROUP_SLUG = 'demo-company'
 const DEMO_RESOURCE_NAME = 'DEMO ΗΜΕΡΟΛΟΓΙΟ'
 const DEMO_RESOURCE_TYPE = 'DEMO'
 
@@ -13,44 +15,21 @@ const START_HOUR = 8
 const END_HOUR = 22
 const SLOT_INTERVAL_MINUTES = 15
 
-async function upsertDemoResource() {
-  const existing = await prisma.resource.findFirst({
-    where: { name: DEMO_RESOURCE_NAME },
-  })
-
-  if (existing) {
-    return prisma.resource.update({
-      where: { id: existing.id },
-      data: {
-        name: DEMO_RESOURCE_NAME,
-        type: DEMO_RESOURCE_TYPE,
-      },
-    })
-  }
-
-  return prisma.resource.create({
-    data: {
-      name: DEMO_RESOURCE_NAME,
-      type: DEMO_RESOURCE_TYPE,
-    },
-  })
-}
-
-async function ensureDemoSlots(resourceId: number) {
+async function ensureDemoSlots(resourceId) {
   const startDate = new Date()
-  startDate.setHours(0, 0, 0, 0)
+  startDate.setUTCHours(0, 0, 0, 0)
 
-  const pendingCreates: Prisma.AppointmentCreateManyInput[] = []
+  const pendingCreates = []
 
   for (let day = 0; day < DAYS_TO_GENERATE; day++) {
     const currentDate = new Date(startDate)
-    currentDate.setDate(startDate.getDate() + day)
+    currentDate.setUTCDate(startDate.getUTCDate() + day)
 
     const timeCursor = new Date(currentDate)
-    timeCursor.setHours(START_HOUR, 0, 0, 0)
+    timeCursor.setUTCHours(START_HOUR, 0, 0, 0)
 
     const endTime = new Date(currentDate)
-    endTime.setHours(END_HOUR, 0, 0, 0)
+    endTime.setUTCHours(END_HOUR, 0, 0, 0)
 
     while (timeCursor < endTime) {
       pendingCreates.push({
@@ -60,7 +39,7 @@ async function ensureDemoSlots(resourceId: number) {
         duration: SLOT_INTERVAL_MINUTES,
       })
 
-      timeCursor.setMinutes(timeCursor.getMinutes() + SLOT_INTERVAL_MINUTES)
+      timeCursor.setUTCMinutes(timeCursor.getUTCMinutes() + SLOT_INTERVAL_MINUTES)
     }
   }
 
@@ -75,20 +54,52 @@ async function ensureDemoSlots(resourceId: number) {
 async function main() {
   const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10)
 
+  const demoGroup = await prisma.calendarGroup.upsert({
+    where: { slug: DEMO_GROUP_SLUG },
+    update: { name: DEMO_GROUP_NAME },
+    create: {
+      name: DEMO_GROUP_NAME,
+      slug: DEMO_GROUP_SLUG,
+    },
+  })
+
   const demoUser = await prisma.user.upsert({
     where: { username: DEMO_USERNAME },
     update: {
       password: hashedPassword,
       role: 'USER',
+      groupId: demoGroup.id,
+      canWrite: false,
     },
     create: {
       username: DEMO_USERNAME,
       password: hashedPassword,
       role: 'USER',
+      groupId: demoGroup.id,
+      canWrite: false,
     },
   })
 
-  const demoResource = await upsertDemoResource()
+  const existingDemoResource = await prisma.resource.findFirst({
+    where: { name: DEMO_RESOURCE_NAME },
+  })
+
+  const demoResource = existingDemoResource
+    ? await prisma.resource.update({
+        where: { id: existingDemoResource.id },
+        data: {
+          name: DEMO_RESOURCE_NAME,
+          type: DEMO_RESOURCE_TYPE,
+          groupId: demoGroup.id,
+        },
+      })
+    : await prisma.resource.create({
+        data: {
+          name: DEMO_RESOURCE_NAME,
+          type: DEMO_RESOURCE_TYPE,
+          groupId: demoGroup.id,
+        },
+      })
 
   await prisma.resourceAccess.upsert({
     where: {
@@ -107,7 +118,17 @@ async function main() {
 
   await ensureDemoSlots(demoResource.id)
 
-  console.log(`Demo ready: ${DEMO_USERNAME}/${DEMO_PASSWORD} -> ${DEMO_RESOURCE_NAME} (read-only)`)
+  console.log({
+    demo: {
+      id: demoUser.id,
+      username: demoUser.username,
+      role: demoUser.role,
+      groupId: demoUser.groupId,
+      canWrite: demoUser.canWrite,
+    },
+    group: demoGroup,
+    resource: demoResource,
+  })
 }
 
 main()

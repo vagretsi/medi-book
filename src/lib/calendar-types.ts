@@ -13,6 +13,8 @@ export type CalendarResource = {
   id: number
   name: string
   type: string
+  groupId: number | null
+  groupName?: string | null
   appointments: AppointmentSlot[]
   canWrite: boolean
 }

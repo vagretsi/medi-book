@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:demo-access": "ts-node prisma/seed-demo-access.ts",
+    "seed:demo-access": "node prisma/seed-demo-access.js",
     "fill:leave-to-august": "node prisma/fill-leave-to-august.js",
     "inspect:leave-source": "LEAVE_INSPECT=1 node prisma/fill-leave-to-august.js"
   },

@@ -14,6 +14,8 @@ const prisma = new PrismaClient()
 type CurrentUser = {
   id: number
   role: string
+  groupId: number | null
+  canWrite: boolean
 }
 
 async function requireCurrentUser(): Promise<CurrentUser> {
@@ -24,9 +26,25 @@ async function requireCurrentUser(): Promise<CurrentUser> {
     throw new Error('Δεν υπάρχει ενεργή σύνδεση.')
   }
 
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      groupId: true,
+      canWrite: true,
+    },
+  })
+
+  if (!dbUser) {
+    throw new Error('Ο χρήστης δεν βρέθηκε.')
+  }
+
   return {
-    id: userId,
-    role: session.user.role || 'USER',
+    id: dbUser.id,
+    role: dbUser.role,
+    groupId: dbUser.groupId,
+    canWrite: dbUser.canWrite,
   }
 }
 
@@ -34,19 +52,9 @@ function isAdmin(user: CurrentUser) {
   return user.role === 'ADMIN'
 }
 
-async function userCanSeeAnyResource(user: CurrentUser) {
-  if (isAdmin(user)) return true
-
-  const access = await prisma.resourceAccess.findFirst({
-    where: { userId: user.id },
-    select: { id: true },
-  })
-
-  return Boolean(access)
-}
-
 async function userCanWriteAnyResource(user: CurrentUser) {
   if (isAdmin(user)) return true
+  if (user.groupId) return user.canWrite
 
   const access = await prisma.resourceAccess.findFirst({
     where: { userId: user.id, canWrite: true },
@@ -66,11 +74,21 @@ async function requireAppointmentWriteAccess(aptId: number) {
 
   const appointment = await prisma.appointment.findUnique({
     where: { id: aptId },
-    select: { resourceId: true },
+    select: {
+      resourceId: true,
+      resource: {
+        select: { groupId: true },
+      },
+    },
   })
 
   if (!appointment) {
     throw new Error('Το ραντεβού δεν βρέθηκε.')
+  }
+
+  if (user.groupId) {
+    if (appointment.resource.groupId === user.groupId && user.canWrite) return
+    throw new Error('Δεν έχεις δικαίωμα επεξεργασίας για αυτό το ημερολόγιο.')
   }
 
   const access = await prisma.resourceAccess.findUnique({
@@ -99,6 +117,8 @@ export async function getDayAppointments(dateStr: string): Promise<CalendarResou
   const resources = await prisma.resource.findMany({
     where: isAdmin(user)
       ? {}
+      : user.groupId
+        ? { groupId: user.groupId }
       : {
           accesses: {
             some: { userId: user.id },
@@ -119,14 +139,18 @@ export async function getDayAppointments(dateStr: string): Promise<CalendarResou
         where: { userId: user.id },
         select: { canWrite: true },
       },
+      group: {
+        select: { name: true },
+      },
     },
   })
   
   return resources.map((resource) => {
-    const { accesses, ...rest } = resource
+    const { accesses, group, ...rest } = resource
     return {
       ...rest,
-      canWrite: isAdmin(user) || accesses.some((access) => access.canWrite),
+      groupName: group?.name || null,
+      canWrite: isAdmin(user) || (user.groupId ? user.canWrite : accesses.some((access) => access.canWrite)),
     }
   })
 }
@@ -209,15 +233,18 @@ export async function cancelAppointment(formData: FormData) {
 // 6. GET DAY NOTE
 export async function getDayNote(dateStr: string) {
   const user = await requireCurrentUser()
-  const canSeeNotes = await userCanSeeAnyResource(user)
+  const canSeeNotes = await userCanWriteAnyResource(user)
 
   if (!canSeeNotes) return ""
 
   const date = new Date(dateStr)
-  date.setHours(0, 0, 0, 0)
+  date.setUTCHours(0, 0, 0, 0)
 
-  const note = await prisma.dayNote.findUnique({
-    where: { date: date }
+  const note = await prisma.dayNote.findFirst({
+    where: {
+      date,
+      groupId: user.groupId,
+    }
   })
   return note?.content || ""
 }
@@ -232,13 +259,30 @@ export async function saveDayNote(dateStr: string, content: string) {
   }
 
   const date = new Date(dateStr);
-  date.setHours(0, 0, 0, 0);
+  date.setUTCHours(0, 0, 0, 0);
 
-  await prisma.dayNote.upsert({
-    where: { date: date },
-    update: { content },
-    create: { date, content }
-  });
+  const existingNote = await prisma.dayNote.findFirst({
+    where: {
+      date,
+      groupId: user.groupId,
+    },
+    select: { id: true },
+  })
+
+  if (existingNote) {
+    await prisma.dayNote.update({
+      where: { id: existingNote.id },
+      data: { content },
+    })
+  } else {
+    await prisma.dayNote.create({
+      data: {
+        date,
+        groupId: user.groupId,
+        content,
+      },
+    })
+  }
   
   // Δεν κάνουμε revalidatePath εδώ για να μην αναβοσβήνει η οθόνη καθώς γράφει ο χρήστης
 }

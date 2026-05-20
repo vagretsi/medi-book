@@ -21,7 +21,13 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null;
         const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password);
         if (!isPasswordCorrect) return null;
-        return { id: user.id.toString(), name: user.username, role: user.role };
+        return {
+          id: user.id.toString(),
+          name: user.username,
+          role: user.role,
+          groupId: user.groupId,
+          canWrite: user.canWrite,
+        };
       }
     })
   ],
@@ -30,6 +36,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.groupId = user.groupId;
+        token.canWrite = user.canWrite;
       }
       return token;
     },
@@ -37,6 +45,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.groupId = token.groupId;
+        session.user.canWrite = token.canWrite;
       }
       return session;
     }

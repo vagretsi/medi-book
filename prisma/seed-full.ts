@@ -16,17 +16,31 @@ async function main() {
  // 2. Δημιουργία ή Ενημέρωση χρηστών
   const hashedPassword = await bcrypt.hash("admin123", 10);
   const demoPassword = await bcrypt.hash("demo", 10);
+
+  const internalGroup = await prisma.calendarGroup.upsert({
+    where: { slug: 'medibook-internal' },
+    update: { name: 'MediBook Internal' },
+    create: { name: 'MediBook Internal', slug: 'medibook-internal' },
+  })
+
+  const demoGroup = await prisma.calendarGroup.upsert({
+    where: { slug: 'demo-company' },
+    update: { name: 'Demo Company' },
+    create: { name: 'Demo Company', slug: 'demo-company' },
+  })
   
   await prisma.user.upsert({
     where: { username: 'admin' },
     update: { 
       password: hashedPassword, // <--- ΠΡΟΣΘΕΣΕ ΑΥΤΟ για να ανανεώνεται ο κωδικός
-      role: 'ADMIN'
+      role: 'ADMIN',
+      canWrite: true,
     }, 
     create: {
       username: 'admin',
       password: hashedPassword,
-      role: 'ADMIN'
+      role: 'ADMIN',
+      canWrite: true,
     }
   });
 
@@ -35,11 +49,15 @@ async function main() {
     update: {
       password: demoPassword,
       role: 'USER',
+      groupId: demoGroup.id,
+      canWrite: false,
     },
     create: {
       username: 'demo',
       password: demoPassword,
       role: 'USER',
+      groupId: demoGroup.id,
+      canWrite: false,
     },
   })
 
@@ -48,20 +66,20 @@ async function main() {
   
   const iatreio = await prisma.resource.upsert({ 
     where: { id: 1 }, 
-    update: { name: 'ΙΑΤΡΕΙΟ' }, 
-    create: { name: 'ΙΑΤΡΕΙΟ', type: 'MEDICAL' }
+    update: { name: 'ΙΑΤΡΕΙΟ', groupId: internalGroup.id }, 
+    create: { name: 'ΙΑΤΡΕΙΟ', type: 'MEDICAL', groupId: internalGroup.id }
   })
 
   const laser = await prisma.resource.upsert({ 
     where: { id: 2 }, 
-    update: { name: 'LASER' }, 
-    create: { name: 'LASER', type: 'LASER' }
+    update: { name: 'LASER', groupId: internalGroup.id }, 
+    create: { name: 'LASER', type: 'LASER', groupId: internalGroup.id }
   })
 
   const demoCalendar = await prisma.resource.upsert({
     where: { id: 3 },
-    update: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO' },
-    create: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO' }
+    update: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO', groupId: demoGroup.id },
+    create: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO', groupId: demoGroup.id }
   })
 
   await prisma.resourceAccess.upsert({
@@ -88,16 +106,16 @@ async function main() {
   const intervalMinutes = 15;
 
   const startDate = new Date();
-  startDate.setHours(0,0,0,0);
+  startDate.setUTCHours(0,0,0,0);
 
   for (let i = 0; i < daysToGenerate; i++) {
     const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
+    currentDate.setUTCDate(startDate.getUTCDate() + i);
     
     const timeCursor = new Date(currentDate);
-    timeCursor.setHours(startHour, 0, 0, 0);
+    timeCursor.setUTCHours(startHour, 0, 0, 0);
     const endTime = new Date(currentDate);
-    endTime.setHours(endHour, 0, 0, 0);
+    endTime.setUTCHours(endHour, 0, 0, 0);
 
     while (timeCursor < endTime) {
       for (const resource of seedResources) {
@@ -106,7 +124,7 @@ async function main() {
         })
       }
       
-      timeCursor.setMinutes(timeCursor.getMinutes() + intervalMinutes);
+      timeCursor.setUTCMinutes(timeCursor.getUTCMinutes() + intervalMinutes);
     }
   }
   console.log("✅ Έτοιμο! Admin, demo user & Πρόγραμμα δημιουργήθηκαν.")

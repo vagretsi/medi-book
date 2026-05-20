@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { User, Phone, Edit2 } from 'lucide-react'
 import BookingModal from './BookingModal'
 import EditModal from './EditModal'
-import { format, addMinutes, isSameMinute } from 'date-fns'
+import { addMinutes, isSameMinute } from 'date-fns'
 import type { AppointmentSlot } from '@/lib/calendar-types'
+import { formatBusinessTime } from '@/lib/business-time'
 
 export default function BookingManager({ appointments, onRefresh, canWrite }: { appointments: AppointmentSlot[], onRefresh: () => Promise<void>, canWrite: boolean }) {
   const [selectedApt, setSelectedApt] = useState<AppointmentSlot | null>(null)
@@ -55,7 +56,7 @@ export default function BookingManager({ appointments, onRefresh, canWrite }: { 
             {/* Left Side: Time */}
             <div className={`w-16 flex flex-col items-center justify-center border-r border-white/5 h-full ${apt.status === 'BOOKED' ? 'bg-blue-500/10' : 'bg-black/20'}`}>
                <span className={`text-xs font-mono font-bold ${apt.status === 'BOOKED' ? 'text-blue-300' : 'text-slate-500'}`}>
-                 {format(new Date(apt.date), "HH:mm")}
+                 {formatBusinessTime(apt.date)}
                </span>
                {apt.status === 'BOOKED' && (
                  <span className="text-[9px] text-blue-400/60 mt-1">{apt.duration} λεπτά</span>

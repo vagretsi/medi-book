@@ -127,7 +127,9 @@ export default function DashboardController({ initialData, initialDayNote }: { i
             </div>
           </div>
         ))}
-        <DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWriteAnyCalendar} />
+        {canWriteAnyCalendar && (
+          <DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWriteAnyCalendar} />
+        )}
       </div>
     </div>
   )

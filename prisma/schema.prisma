@@ -11,8 +11,12 @@ model Resource {
   id          Int           @id @default(autoincrement())
   name        String        // π.χ. "Dr. Vasilis" ή "Alexandrite Laser"
   type        String        // "MEDICAL" ή "AESTHETIC"
+  groupId     Int?
   appointments Appointment[]
   accesses    ResourceAccess[]
+  group       CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
 }
 
 model Appointment {
@@ -41,8 +45,13 @@ model Appointment {
 // Daily notes
 model DayNote {
   id      Int      @id @default(autoincrement())
-  date    DateTime @unique
+  date    DateTime
+  groupId Int?
   content String   @db.Text // Μεγάλο κείμενο
+  group   CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([date, groupId])
+  @@index([groupId])
 }
 
 //user
@@ -52,8 +61,23 @@ model User {
   username  String   @unique
   password  String   // Θα αποθηκεύεται κρυπτογραφημένο (Hashed)
   role      String   @default("USER") // "ADMIN" ή "USER"
+  groupId   Int?
+  canWrite  Boolean  @default(true)
   createdAt DateTime @default(now())
+  group     CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   resourceAccesses ResourceAccess[]
+
+  @@index([groupId])
+}
+
+model CalendarGroup {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+  resources Resource[]
+  dayNotes  DayNote[]
 }
 
 model ResourceAccess {

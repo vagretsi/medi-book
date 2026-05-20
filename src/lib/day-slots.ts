@@ -6,16 +6,16 @@ const SLOT_INTERVAL_MINUTES = 15
 
 export function getDayBounds(dateInput: Date) {
   const startOfDay = new Date(dateInput)
-  startOfDay.setHours(0, 0, 0, 0)
+  startOfDay.setUTCHours(0, 0, 0, 0)
 
   const endOfDay = new Date(dateInput)
-  endOfDay.setHours(23, 59, 59, 999)
+  endOfDay.setUTCHours(23, 59, 59, 999)
 
   return { startOfDay, endOfDay }
 }
 
 function slotKey(date: Date, resourceId: number) {
-  return `${resourceId}:${date.getHours()}:${date.getMinutes()}`
+  return `${resourceId}:${date.getUTCHours()}:${date.getUTCMinutes()}`
 }
 
 export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
@@ -49,10 +49,10 @@ export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
 
   for (const resource of resources) {
     const cursor = new Date(startOfDay)
-    cursor.setHours(START_HOUR, 0, 0, 0)
+    cursor.setUTCHours(START_HOUR, 0, 0, 0)
 
     const endTime = new Date(startOfDay)
-    endTime.setHours(END_HOUR, 0, 0, 0)
+    endTime.setUTCHours(END_HOUR, 0, 0, 0)
 
     while (cursor < endTime) {
       const slotDate = new Date(cursor)
