@@ -90,18 +90,15 @@ export default function BookingManager({ appointments, onRefresh, canWrite }: { 
                 <>
                   <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest pl-2">Available</span>
                   {/* ΚΟΥΜΠΙ: Τώρα είναι ΠΑΝΤΑ ορατό (αφαιρέθηκε το opacity-0) */}
-                  {canWrite ? (
-                    <button 
-                      onClick={() => setSelectedApt(apt)}
-                      className="bg-white text-slate-900 text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95"
-                    >
-                      + BOOK
-                    </button>
-                  ) : (
-                    <span className="text-[10px] font-black px-3 py-2 rounded-xl border border-amber-500/20 text-amber-400 bg-amber-500/10 uppercase">
-                      Προβολή
-                    </span>
-                  )}
+                  <button 
+                    onClick={() => setSelectedApt(apt)}
+                    className={canWrite
+                      ? "bg-white text-slate-900 text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95"
+                      : "text-[10px] font-black px-3 py-2 rounded-xl border border-amber-500/20 text-amber-400 bg-amber-500/10 uppercase transition-all active:scale-95"
+                    }
+                  >
+                    {canWrite ? '+ BOOK' : 'Προβολή'}
+                  </button>
                 </>
               )}
             </div>
@@ -114,7 +111,7 @@ export default function BookingManager({ appointments, onRefresh, canWrite }: { 
         )
       })}
       
-      {selectedApt && canWrite && <BookingModal apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} />}
+      {selectedApt && <BookingModal apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} canWrite={canWrite} />}
       {editingApt && canWrite && <EditModal apt={editingApt} onClose={() => setEditingApt(null)} onRefresh={onRefresh} />}
     </div>
   )

@@ -1,5 +1,5 @@
 const businessTimeFormatter = new Intl.DateTimeFormat('el-GR', {
-  timeZone: 'UTC',
+  timeZone: 'Europe/Athens',
   hour: '2-digit',
   minute: '2-digit',
   hour12: false,

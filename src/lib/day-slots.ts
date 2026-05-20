@@ -3,19 +3,77 @@ import { Prisma, PrismaClient } from '@prisma/client'
 const START_HOUR = 8
 const END_HOUR = 22
 const SLOT_INTERVAL_MINUTES = 15
+const BUSINESS_TIME_ZONE = 'Europe/Athens'
+
+function getDatePartsInBusinessZone(dateInput: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(dateInput)
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+  }
+}
+
+function getBusinessZoneOffsetMinutes(dateInput: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(dateInput)
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  const businessTimeAsUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second),
+  )
+
+  return (businessTimeAsUtc - dateInput.getTime()) / 60000
+}
+
+function businessTimeToUtc(year: number, month: number, day: number, hour: number, minute = 0) {
+  const initialUtc = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0))
+  const offsetMinutes = getBusinessZoneOffsetMinutes(initialUtc)
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0) - offsetMinutes * 60000)
+}
 
 export function getDayBounds(dateInput: Date) {
-  const startOfDay = new Date(dateInput)
-  startOfDay.setUTCHours(0, 0, 0, 0)
+  const { year, month, day } = getDatePartsInBusinessZone(dateInput)
+  const startOfDay = businessTimeToUtc(year, month, day, 0)
 
-  const endOfDay = new Date(dateInput)
-  endOfDay.setUTCHours(23, 59, 59, 999)
+  const nextDay = new Date(Date.UTC(year, month - 1, day + 1, 12, 0, 0, 0))
+  const nextDayParts = getDatePartsInBusinessZone(nextDay)
+  const endOfDay = new Date(businessTimeToUtc(nextDayParts.year, nextDayParts.month, nextDayParts.day, 0).getTime() - 1)
 
   return { startOfDay, endOfDay }
 }
 
 function slotKey(date: Date, resourceId: number) {
-  return `${resourceId}:${date.getUTCHours()}:${date.getUTCMinutes()}`
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BUSINESS_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+
+  return `${resourceId}:${values.hour}:${values.minute}`
 }
 
 export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
@@ -46,13 +104,11 @@ export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
   )
 
   const pendingCreates: Prisma.AppointmentCreateManyInput[] = []
+  const { year, month, day } = getDatePartsInBusinessZone(dateInput)
 
   for (const resource of resources) {
-    const cursor = new Date(startOfDay)
-    cursor.setUTCHours(START_HOUR, 0, 0, 0)
-
-    const endTime = new Date(startOfDay)
-    endTime.setUTCHours(END_HOUR, 0, 0, 0)
+    const cursor = businessTimeToUtc(year, month, day, START_HOUR)
+    const endTime = businessTimeToUtc(year, month, day, END_HOUR)
 
     while (cursor < endTime) {
       const slotDate = new Date(cursor)
@@ -68,7 +124,7 @@ export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
         existingKeys.add(key)
       }
 
-      cursor.setMinutes(cursor.getMinutes() + SLOT_INTERVAL_MINUTES)
+      cursor.setUTCMinutes(cursor.getUTCMinutes() + SLOT_INTERVAL_MINUTES)
     }
   }
 

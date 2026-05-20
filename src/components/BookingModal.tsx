@@ -6,10 +6,12 @@ import type { AppointmentSlot } from '@/lib/calendar-types'
 import { formatBusinessTime } from '@/lib/business-time'
 
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
-export default function BookingModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
+export default function BookingModal({ apt, onClose, onRefresh, canWrite }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(formData: FormData) {
+    if (!canWrite) return
+
     setLoading(true)
     await bookAppointment(formData)
     await onRefresh() // Καλούμε το refresh μετά την κράτηση
@@ -38,17 +40,17 @@ export default function BookingModal({ apt, onClose, onRefresh }: { apt: Appoint
           
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Όνομα Ασθενή</label>
-            <input name="patientName" required className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Ονοματεπώνυμο..." />
+            <input name="patientName" required readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="Ονοματεπώνυμο..." />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
                <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Τηλέφωνο</label>
-               <input name="patientTel" required className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="69..." />
+               <input name="patientTel" required readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="69..." />
             </div>
             <div className="space-y-1.5">
                <label className="text-[10px] font-black text-slate-500 uppercase ml-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Διάρκεια</label>
-               <select name="duration" defaultValue="30" className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+               <select name="duration" defaultValue="30" disabled={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`}>
                   <option value="15">15 Λεπτά</option>
                   <option value="30">30 Λεπτά</option>
                   <option value="45">45 Λεπτά</option>
@@ -60,11 +62,11 @@ export default function BookingModal({ apt, onClose, onRefresh }: { apt: Appoint
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Σημειώσεις</label>
-            <textarea name="notes" rows={3} className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" placeholder="Σημειώσεις..." />
+            <textarea name="notes" rows={3} readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="Σημειώσεις..." />
           </div>
 
-          <button type="submit" disabled={loading} className="w-full bg-white text-slate-950 py-4 rounded-2xl font-black uppercase tracking-tighter hover:bg-blue-500 hover:text-white transition-all transform active:scale-95 shadow-xl shadow-white/5">
-            {loading ? 'ΚΡΑΤΗΣΗ...' : 'ΕΠΙΒΕΒΑΙΩΣΗ'}
+          <button type="submit" disabled={loading || !canWrite} className={`w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all transform shadow-xl shadow-white/5 ${canWrite ? 'bg-white text-slate-950 hover:bg-blue-500 hover:text-white active:scale-95' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>
+            {!canWrite ? 'ΠΡΟΒΟΛΗ ΜΟΝΟ' : loading ? 'ΚΡΑΤΗΣΗ...' : 'ΕΠΙΒΕΒΑΙΩΣΗ'}
           </button>
         </form>
       </div>
