@@ -1,29 +1,19 @@
-import { PrismaClient } from "@prisma/client";
 import DashboardController from "@/components/DashboardController";
-import { ensureDaySlots, getDayBounds } from "@/lib/day-slots";
+import { getDayAppointments, getDayNote } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
-const prisma = new PrismaClient();
 
 export default async function Page() {
   const today = new Date();
-  const { startOfDay, endOfDay } = getDayBounds(today);
-
-  await ensureDaySlots(prisma, today);
-
-  const initialResources = await prisma.resource.findMany({
-    orderBy: { id: 'asc' },
-    include: {
-      appointments: {
-        where: { date: { gte: startOfDay, lte: endOfDay } },
-        orderBy: { date: "asc" },
-      },
-    },
-  });
+  const todayStr = today.toISOString();
+  const [initialResources, initialDayNote] = await Promise.all([
+    getDayAppointments(todayStr),
+    getDayNote(todayStr),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200">
-        <DashboardController initialData={initialResources} />
+        <DashboardController initialData={initialResources} initialDayNote={initialDayNote} />
     </div>
   );
 }

@@ -2,9 +2,10 @@
 import { useState } from 'react'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
 import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
+import type { AppointmentSlot } from '@/lib/calendar-types'
 
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
-export default function EditModal({ apt, onClose, onRefresh }: { apt: any, onClose: any, onRefresh: any }) {
+export default function EditModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
   const [loading, setLoading] = useState(false)
 
   async function handleUpdate(formData: FormData) {
@@ -43,13 +44,13 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: any, onClo
             
             <div className="space-y-2">
               <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><User className="w-3 h-3"/> Όνομα Ασθενή</label>
-              <input name="patientName" defaultValue={apt.patientName} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
+              <input name="patientName" defaultValue={apt.patientName ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Phone className="w-3 h-3"/> Τηλέφωνο</label>
-                <input name="patientTel" defaultValue={apt.patientTel} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
+                <input name="patientTel" defaultValue={apt.patientTel ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
               </div>
               <div className="space-y-2">
                  <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Clock className="w-3 h-3"/> Διάρκεια</label>
@@ -64,7 +65,7 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: any, onClo
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><FileText className="w-3 h-3"/> Σημειώσεις</label>
-              <textarea name="notes" defaultValue={apt.notes} rows={3} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" />
+              <textarea name="notes" defaultValue={apt.notes ?? ''} rows={3} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" />
             </div>
 
             <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">

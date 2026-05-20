@@ -4,14 +4,15 @@ import { User, Phone, Edit2 } from 'lucide-react'
 import BookingModal from './BookingModal'
 import EditModal from './EditModal'
 import { format, addMinutes, isSameMinute } from 'date-fns'
+import type { AppointmentSlot } from '@/lib/calendar-types'
 
-export default function BookingManager({ appointments, onRefresh }: { appointments: any[], onRefresh: () => void }) {
-  const [selectedApt, setSelectedApt] = useState<any>(null)
-  const [editingApt, setEditingApt] = useState<any>(null)
+export default function BookingManager({ appointments, onRefresh, canWrite }: { appointments: AppointmentSlot[], onRefresh: () => Promise<void>, canWrite: boolean }) {
+  const [selectedApt, setSelectedApt] = useState<AppointmentSlot | null>(null)
+  const [editingApt, setEditingApt] = useState<AppointmentSlot | null>(null)
 
   // Βοηθητική συνάρτηση για να βρούμε ποια slots πρέπει να ΚΡΥΨΟΥΜΕ
   const getHiddenSlots = () => {
-    const hiddenIds = new Set();
+    const hiddenIds = new Set<number>();
     appointments.forEach(apt => {
       if (apt.status === 'BOOKED' && apt.duration > 15) {
         // Υπολογίζουμε πόσα 15λεπτα πιάνει
@@ -34,7 +35,7 @@ export default function BookingManager({ appointments, onRefresh }: { appointmen
 
   return (
     <div className="flex flex-col gap-1 relative"> 
-      {appointments.map((apt: any) => {
+      {appointments.map((apt) => {
         // Αν αυτό το slot καλύπτεται από προηγούμενο μεγάλο ραντεβού, μην το δείξεις καθόλου
         if (hiddenSlotIds.has(apt.id)) return null;
 
@@ -57,7 +58,7 @@ export default function BookingManager({ appointments, onRefresh }: { appointmen
                  {format(new Date(apt.date), "HH:mm")}
                </span>
                {apt.status === 'BOOKED' && (
-                 <span className="text-[9px] text-blue-400/60 mt-1">{apt.duration}'</span>
+                 <span className="text-[9px] text-blue-400/60 mt-1">{apt.duration} λεπτά</span>
                )}
             </div>
 
@@ -75,23 +76,31 @@ export default function BookingManager({ appointments, onRefresh }: { appointmen
                   </div>
                   
                   {/* Edit Button */}
-                  <button 
-                    onClick={() => setEditingApt(apt)}
-                    className="absolute top-2 right-2 text-slate-500 hover:text-white hover:bg-slate-700 p-2 rounded-lg transition-colors z-10"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
+                  {canWrite && (
+                    <button 
+                      onClick={() => setEditingApt(apt)}
+                      className="absolute top-2 right-2 text-slate-500 hover:text-white hover:bg-slate-700 p-2 rounded-lg transition-colors z-10"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
                   <span className="text-slate-600 text-[10px] font-black uppercase tracking-widest pl-2">Available</span>
                   {/* ΚΟΥΜΠΙ: Τώρα είναι ΠΑΝΤΑ ορατό (αφαιρέθηκε το opacity-0) */}
-                  <button 
-                    onClick={() => setSelectedApt(apt)}
-                    className="bg-white text-slate-900 text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95"
-                  >
-                    + BOOK
-                  </button>
+                  {canWrite ? (
+                    <button 
+                      onClick={() => setSelectedApt(apt)}
+                      className="bg-white text-slate-900 text-[10px] font-black px-4 py-2 rounded-xl transition-all shadow-xl active:scale-95"
+                    >
+                      + BOOK
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-black px-3 py-2 rounded-xl border border-amber-500/20 text-amber-400 bg-amber-500/10 uppercase">
+                      Προβολή
+                    </span>
+                  )}
                 </>
               )}
             </div>
@@ -104,8 +113,8 @@ export default function BookingManager({ appointments, onRefresh }: { appointmen
         )
       })}
       
-      {selectedApt && <BookingModal apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} />}
-      {editingApt && <EditModal apt={editingApt} onClose={() => setEditingApt(null)} onRefresh={onRefresh} />}
+      {selectedApt && canWrite && <BookingModal apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} />}
+      {editingApt && canWrite && <EditModal apt={editingApt} onClose={() => setEditingApt(null)} onRefresh={onRefresh} />}
     </div>
   )
 }

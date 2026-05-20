@@ -2,9 +2,10 @@
 import { useState } from 'react'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
+import type { AppointmentSlot } from '@/lib/calendar-types'
 
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
-export default function BookingModal({ apt, onClose, onRefresh }: { apt: any, onClose: any, onRefresh: any }) {
+export default function BookingModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(formData: FormData) {
@@ -46,9 +47,9 @@ export default function BookingModal({ apt, onClose, onRefresh }: { apt: any, on
             </div>
             <div className="space-y-1.5">
                <label className="text-[10px] font-black text-slate-500 uppercase ml-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Διάρκεια</label>
-               <select name="duration" className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+               <select name="duration" defaultValue="30" className="w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                   <option value="15">15 Λεπτά</option>
-                  <option value="30" selected>30 Λεπτά</option>
+                  <option value="30">30 Λεπτά</option>
                   <option value="45">45 Λεπτά</option>
                   <option value="60">1 Ώρα</option>
                   <option value="90">1.5 Ώρα</option>

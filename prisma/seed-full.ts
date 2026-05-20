@@ -13,13 +13,15 @@ async function main() {
 
   console.log("🗑️  Τα ραντεβού καθαρίστηκαν.")
 
- // 2. Δημιουργία ή Ενημέρωση ADMIN Χρήστη
+ // 2. Δημιουργία ή Ενημέρωση χρηστών
   const hashedPassword = await bcrypt.hash("admin123", 10);
+  const demoPassword = await bcrypt.hash("demo", 10);
   
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'admin' },
     update: { 
-      password: hashedPassword // <--- ΠΡΟΣΘΕΣΕ ΑΥΤΟ για να ανανεώνεται ο κωδικός
+      password: hashedPassword, // <--- ΠΡΟΣΘΕΣΕ ΑΥΤΟ για να ανανεώνεται ο κωδικός
+      role: 'ADMIN'
     }, 
     create: {
       username: 'admin',
@@ -27,6 +29,20 @@ async function main() {
       role: 'ADMIN'
     }
   });
+
+  const demo = await prisma.user.upsert({
+    where: { username: 'demo' },
+    update: {
+      password: demoPassword,
+      role: 'USER',
+    },
+    create: {
+      username: 'demo',
+      password: demoPassword,
+      role: 'USER',
+    },
+  })
+
   // 3. Resources
   console.log("🚀 Γέμισμα με 15-λεπτα slots...")
   
@@ -41,6 +57,29 @@ async function main() {
     update: { name: 'LASER' }, 
     create: { name: 'LASER', type: 'LASER' }
   })
+
+  const demoCalendar = await prisma.resource.upsert({
+    where: { id: 3 },
+    update: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO' },
+    create: { name: 'DEMO ΗΜΕΡΟΛΟΓΙΟ', type: 'DEMO' }
+  })
+
+  await prisma.resourceAccess.upsert({
+    where: {
+      userId_resourceId: {
+        userId: demo.id,
+        resourceId: demoCalendar.id,
+      },
+    },
+    update: { canWrite: false },
+    create: {
+      userId: demo.id,
+      resourceId: demoCalendar.id,
+      canWrite: false,
+    },
+  })
+
+  const seedResources = [iatreio, laser, demoCalendar]
   
   // 4. Ρυθμίσεις Ωραρίου
   const daysToGenerate = 45; 
@@ -61,18 +100,16 @@ async function main() {
     endTime.setHours(endHour, 0, 0, 0);
 
     while (timeCursor < endTime) {
-      await prisma.appointment.create({ 
-        data: { date: timeCursor, resourceId: iatreio.id, status: 'FREE', duration: 15 }
-      })
-
-      await prisma.appointment.create({ 
-        data: { date: timeCursor, resourceId: laser.id, status: 'FREE', duration: 15 }
-      })
+      for (const resource of seedResources) {
+        await prisma.appointment.create({ 
+          data: { date: timeCursor, resourceId: resource.id, status: 'FREE', duration: 15 }
+        })
+      }
       
       timeCursor.setMinutes(timeCursor.getMinutes() + intervalMinutes);
     }
   }
-  console.log("✅ Έτοιμο! Admin & Πρόγραμμα δημιουργήθηκαν.")
+  console.log("✅ Έτοιμο! Admin, demo user & Πρόγραμμα δημιουργήθηκαν.")
 }
 
 main()

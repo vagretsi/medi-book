@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { el } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Calendar, CalendarDays, Loader2, LogOut } from 'lucide-react'
@@ -7,34 +7,40 @@ import { signOut } from 'next-auth/react'
 import BookingManager from './BookingManager'
 import DailyNote from './DailyNote'
 import { getDayAppointments, getDayNote } from '@/app/actions'
+import type { CalendarResource } from '@/lib/calendar-types'
 
-export default function DashboardController({ initialData }: { initialData: any }) {
+export default function DashboardController({ initialData, initialDayNote }: { initialData: CalendarResource[], initialDayNote: string }) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [resources, setResources] = useState(initialData)
-  const [dayNote, setDayNote] = useState("") 
+  const [dayNote, setDayNote] = useState(initialDayNote)
   const [loading, setLoading] = useState(false)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const canWriteAnyCalendar = resources.some((resource) => resource.canWrite)
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async (targetDate = currentDate) => {
     setLoading(true)
-    const dateStr = currentDate.toISOString()
-    const [data, note] = await Promise.all([
-      getDayAppointments(dateStr),
-      getDayNote(dateStr)
-    ])
-    setResources(data)
-    setDayNote(note)
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    refreshData()
+    try {
+      const dateStr = targetDate.toISOString()
+      const [data, note] = await Promise.all([
+        getDayAppointments(dateStr),
+        getDayNote(dateStr)
+      ])
+      setResources(data)
+      setDayNote(note)
+      setCurrentDate(targetDate)
+    } finally {
+      setLoading(false)
+    }
   }, [currentDate])
+
+  const changeDate = useCallback((targetDate: Date) => {
+    void refreshData(targetDate)
+  }, [refreshData])
 
   const openCalendar = () => {
     try {
       if (dateInputRef.current) dateInputRef.current.showPicker()
-    } catch (err) {
+    } catch {
       dateInputRef.current?.focus()
     }
   }
@@ -55,7 +61,7 @@ export default function DashboardController({ initialData }: { initialData: any 
 
         {/* ΗΜΕΡΟΛΟΓΙΟ */}
         <div className="flex items-center gap-4 bg-slate-900/80 p-2 pr-4 pl-2 rounded-2xl border border-slate-700 shadow-inner relative z-10">
-          <button onClick={() => setCurrentDate(d => subDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
+          <button onClick={() => changeDate(subDays(currentDate, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
             <ChevronLeft className="w-5 h-5" />
           </button>
           
@@ -70,11 +76,11 @@ export default function DashboardController({ initialData }: { initialData: any 
               type="date" 
               className="absolute inset-0 w-full h-full opacity-0 z-30 cursor-pointer md:pointer-events-none" 
               value={format(currentDate, 'yyyy-MM-dd')} 
-              onChange={(e) => { if(e.target.value) setCurrentDate(new Date(e.target.value)) }} 
+              onChange={(e) => { if(e.target.value) changeDate(new Date(e.target.value)) }} 
             />
           </div>
           
-          <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
+          <button onClick={() => changeDate(addDays(currentDate, 1))} className="p-2 hover:bg-slate-700 rounded-xl text-white transition-colors z-20">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -94,21 +100,34 @@ export default function DashboardController({ initialData }: { initialData: any 
 
       {/* GRID (3 COLUMNS) */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
-        {resources.map((resource: any) => (
+        {resources.length === 0 && (
+          <div className="bg-slate-800/30 rounded-[32px] border border-slate-700/50 shadow-xl p-8 min-h-[240px] flex items-center justify-center text-center">
+            <div>
+              <h2 className="text-lg font-bold text-white uppercase tracking-tighter">Δεν υπάρχει πρόσβαση</h2>
+              <p className="text-slate-500 text-sm mt-2">Ο admin πρέπει να σου δώσει πρόσβαση σε ημερολόγιο.</p>
+            </div>
+          </div>
+        )}
+        {resources.map((resource) => (
           <div key={resource.id} className="bg-slate-800/30 rounded-[32px] border border-slate-700/50 shadow-xl overflow-hidden flex flex-col h-full min-h-[600px]">
             <div className={`p-5 border-b border-slate-700/50 flex justify-between items-center ${resource.type === 'MEDICAL' ? 'bg-blue-500/5' : 'bg-purple-500/5'}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full animate-pulse ${resource.type === 'MEDICAL' ? 'bg-blue-500' : 'bg-purple-500'}`} />
                 <h2 className="text-lg font-bold text-white uppercase tracking-tighter">{resource.name}</h2>
               </div>
-              <span className="text-[10px] font-black bg-slate-900 text-slate-500 px-2 py-1 rounded border border-slate-700 uppercase">{resource.type}</span>
+              <div className="flex items-center gap-2">
+                {!resource.canWrite && (
+                  <span className="text-[10px] font-black bg-amber-500/10 text-amber-400 px-2 py-1 rounded border border-amber-500/20 uppercase">Προβολή</span>
+                )}
+                <span className="text-[10px] font-black bg-slate-900 text-slate-500 px-2 py-1 rounded border border-slate-700 uppercase">{resource.type}</span>
+              </div>
             </div>
             <div className="p-4 flex-1 overflow-y-auto max-h-[calc(100vh-250px)]">
-               <BookingManager appointments={resource.appointments} onRefresh={refreshData} />
+               <BookingManager appointments={resource.appointments} onRefresh={refreshData} canWrite={resource.canWrite} />
             </div>
           </div>
         ))}
-        <DailyNote dateStr={currentDate.toISOString()} initialContent={dayNote} />
+        <DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWriteAnyCalendar} />
       </div>
     </div>
   )

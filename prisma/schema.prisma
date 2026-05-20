@@ -12,6 +12,7 @@ model Resource {
   name        String        // π.χ. "Dr. Vasilis" ή "Alexandrite Laser"
   type        String        // "MEDICAL" ή "AESTHETIC"
   appointments Appointment[]
+  accesses    ResourceAccess[]
 }
 
 model Appointment {
@@ -52,4 +53,19 @@ model User {
   password  String   // Θα αποθηκεύεται κρυπτογραφημένο (Hashed)
   role      String   @default("USER") // "ADMIN" ή "USER"
   createdAt DateTime @default(now())
+  resourceAccesses ResourceAccess[]
+}
+
+model ResourceAccess {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  resourceId Int
+  canWrite   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceId])
+  @@index([resourceId])
 }
