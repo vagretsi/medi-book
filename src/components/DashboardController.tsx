@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState, useRef, useCallback } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { el } from 'date-fns/locale'
-import { ArrowUpRight, ChevronLeft, ChevronRight, CalendarDays, Loader2, LogOut, LayoutDashboard, Plus, Search, Clock3, Check, HeartPulse, SlidersHorizontal, NotebookPen } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, LogOut, LayoutDashboard, Plus, Search, Clock3, Check, HeartPulse, SlidersHorizontal, NotebookPen } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
 import BookingManager from './BookingManager'
 import BookingModal from './BookingModal'
@@ -56,12 +56,12 @@ export default function DashboardController({ initialData, initialDayNote }: { i
         <div className="workspace-badge"><span className="workspace-avatar">M</span><div><strong>Το ιατρείο μου</strong><small>Χώρος εργασίας</small></div><span className="online-dot" /></div>
         <p className="nav-caption">ΧΩΡΟΣ ΕΡΓΑΣΙΑΣ</p>
         <nav aria-label="Κύρια πλοήγηση"><a className="nav-item active" href="#overview"><LayoutDashboard size={18} /> Επισκόπηση <span className="nav-dot" /></a><a className="nav-item" href="#schedule"><CalendarDays size={18} /> Πρόγραμμα</a><a className="nav-item" href="#notes"><NotebookPen size={18} /> Σημειώσεις ημέρας</a></nav>
-        <div className="sidebar-bottom"><div className="care-card"><span className="care-icon"><HeartPulse size={22} /></span><strong>Λιγότερη οργάνωση.<br />Περισσότερη φροντίδα.</strong><p>Η ημέρα σου, σε ένα μέρος.</p></div><div className="sidebar-footer"><span className="online-dot" /> MediBook workspace <span>v. 2.0</span></div></div>
+
       </aside>
       <div className="main-shell">
         <header className="topbar"><div className="breadcrumb">Χώρος εργασίας <ChevronRight size={14} /><strong>Επισκόπηση</strong></div><div className="account"><span className="account-avatar">{username.charAt(0).toUpperCase()}</span><div><strong>{username}</strong><small>{canWrite ? 'Διαχείριση ραντεβού' : 'Πρόσβαση προβολής'}</small></div><button className="icon-button" onClick={() => signOut()} aria-label="Αποσύνδεση" title="Αποσύνδεση"><LogOut size={18} /></button></div></header>
         <div className="dashboard-content" id="overview">
-          <section className="page-heading"><div><p className="eyebrow"><span className="online-dot" /> ΟΛΑ ΣΤΗ ΘΕΣΗ ΤΟΥΣ</p><h1>Η ημέρα σου, οργανωμένη<span>.</span></h1><p className="muted">Ραντεβού, διαθεσιμότητα και σημειώσεις. Μια καθαρή εικόνα, κάθε μέρα.</p></div><button className="primary-button" disabled={!firstFree || loading} onClick={() => setNewBooking(firstFree)}><Plus size={18} /> Νέο ραντεβού</button></section>
+          <section className="page-heading"><h1>Ραντεβού</h1><button className="primary-button" disabled={!firstFree || loading} onClick={() => setNewBooking(firstFree)}><Plus size={18} /> Νέο ραντεβού</button></section>
           <section className="day-banner" aria-label="Επιλεγμένη ημέρα">
             <div className="day-banner-caption"><CalendarDays size={25} /><span>ΠΡΟΓΡΑΜΜΑ ΗΜΕΡΑΣ</span></div>
             <div className="day-banner-navigation">
@@ -69,7 +69,6 @@ export default function DashboardController({ initialData, initialDayNote }: { i
               <label className="day-banner-date">
                 <span className="day-banner-weekday">{format(currentDate, 'EEEE', { locale: el })}</span>
                 <span className="day-banner-value" aria-live="polite">{format(currentDate, 'd MMMM yyyy', { locale: el })}</span>
-                <span className="day-banner-hint">Επίλεξε ημερομηνία</span>
                 <input aria-label="Επιλογή ημερομηνίας" type="date" disabled={loading} value={format(currentDate, 'yyyy-MM-dd')} onChange={e => { if (e.target.value) void refreshData(new Date(`${e.target.value}T12:00:00`)) }} />
               </label>
               <button className="day-arrow" aria-label="Επόμενη ημέρα" disabled={loading} onClick={() => void refreshData(addDays(currentDate, 1))}><ChevronRight size={25} /></button>
@@ -77,12 +76,12 @@ export default function DashboardController({ initialData, initialDayNote }: { i
             <button className="day-today" disabled={loading} onClick={() => void refreshData(new Date())}>Σήμερα</button>
           </section>
           <section className="stats-grid" aria-label="Σύνοψη επιλεγμένης ημέρας">
-            <div className="stat-card featured"><div className="stat-top"><span>Ραντεβού ημέρας</span><CalendarDays size={19} /></div><div className="stat-value">{booked.toString().padStart(2, '0')}<span className="stat-detail"><span className="tiny-dot" /> Προγραμματισμένα</span></div><div className="stat-bottom">Μια καλή ημέρα ξεκινά με οργάνωση <ArrowUpRight size={16} /></div></div>
-            <div className="stat-card"><div className="stat-top"><span>Διαθέσιμες ώρες</span><span className="stat-icon"><Clock3 size={19} /></span></div><div className="stat-value">{free.toString().padStart(2, '0')}<span className="stat-detail">Ελεύθερα διαστήματα</span></div><div className="stat-bottom"><span className="online-dot" /> Χώρος για το επόμενο ραντεβού</div></div>
-            <div className="stat-card"><div className="stat-top"><span>Ημερολόγια</span><span className="stat-icon lilac"><Check size={19} /></span></div><div className="stat-value">{resources.length.toString().padStart(2, '0')}<span className="stat-detail">Στον χώρο εργασίας σου</span></div><div className="stat-bottom">{resources.filter(r => r.canWrite).length} με δυνατότητα επεξεργασίας</div></div>
+            <div className="stat-card featured"><div className="stat-top"><span>Ραντεβού</span><CalendarDays size={19} /></div><div className="stat-value">{booked.toString().padStart(2, '0')}</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Διαθέσιμα διαστήματα</span><Clock3 size={19} /></div><div className="stat-value">{free.toString().padStart(2, '0')}</div></div>
+            <div className="stat-card"><div className="stat-top"><span>Ημερολόγια</span><Check size={19} /></div><div className="stat-value">{resources.length.toString().padStart(2, '0')}</div></div>
           </section>
           <section id="schedule" className="schedule-section">
-            <div className="section-heading"><div><h2>Το πρόγραμμά σου <span className="count-pill">{booked}</span></h2><p className="muted">Κάθε ραντεβού, τη σωστή στιγμή.</p></div></div>
+            <div className="section-heading"><div><h2>Πρόγραμμα <span className="count-pill">{booked}</span></h2></div></div>
             <div className="schedule-toolbar"><div className="segmented-control" aria-label="Φίλτρο ραντεβού">{[['all','Όλα'],['BOOKED','Κρατήσεις'],['FREE','Διαθέσιμα']].map(([value,label]) => <button key={value} aria-pressed={filter === value} className={filter === value ? 'selected' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div><div className="toolbar-inputs"><label className="search-field"><Search size={16} /><input aria-label="Αναζήτηση ασθενή ή τηλεφώνου" placeholder="Αναζήτηση ασθενή..." value={query} onChange={e => setQuery(e.target.value)} />{query && <button aria-label="Καθαρισμός αναζήτησης" onClick={() => setQuery('')}>×</button>}</label><label className="resource-filter"><SlidersHorizontal size={15} /><select aria-label="Φίλτρο ημερολογίου" value={selectedResource} onChange={e => setSelectedResource(e.target.value)}><option value="all">Όλα τα ημερολόγια</option>{resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label></div></div>
             {error && <p className="error-banner" role="alert">{error} <button onClick={() => void refreshData()}>Επανάληψη</button></p>}
             <div className="schedule-layout" aria-busy={loading}>
@@ -90,11 +89,11 @@ export default function DashboardController({ initialData, initialDayNote }: { i
                 {resources.length === 0 && <div className="empty-state"><CalendarDays size={28} /><h3>Δεν υπάρχουν διαθέσιμα ημερολόγια</h3><p>Ζήτησε από τον διαχειριστή πρόσβαση σε ένα ημερολόγιο.</p></div>}
                 {visibleResources.map((resource, index) => <section className="calendar-card" key={resource.id}><div className="calendar-heading"><span className={`calendar-icon ${index % 2 ? 'lilac' : ''}`}><CalendarDays size={19} /></span><div><h3>{resource.name}</h3><p>{resource.groupName || (resource.type === 'MEDICAL' ? 'Ιατρικό ημερολόγιο' : 'Ημερολόγιο ραντεβού')}</p></div><span className="calendar-count">{resource.appointments.filter(a => a.status === 'BOOKED').length} ραντεβού</span></div><div className="calendar-subheading"><span>{format(currentDate, 'EEEE', { locale: el })}</span><span>{resource.canWrite ? 'Ώρα / Ραντεβού' : 'Μόνο προβολή'}</span></div><div className="calendar-slots"><BookingManager appointments={resource.appointments} onRefresh={refreshData} canWrite={resource.canWrite} query={query} filter={filter} /></div></section>)}
               </div>
-              <aside id="notes" className="notes-column"><DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWrite} /><div className="day-tip"><span className="tip-label">ΜΙΚΡΗ ΥΠΕΝΘΥΜΙΣΗ</span><p>Λίγος χρόνος ανάμεσα στα ραντεβού κάνει τη διαφορά.</p><span>Φρόντισε και τον δικό σου χρόνο. <HeartPulse size={17} /></span></div></aside>
+              <aside id="notes" className="notes-column"><DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWrite} /></aside>
             </div>
             {loading && <div className="loading-indicator" role="status"><Loader2 size={16} className="animate-spin" /> Ενημέρωση προγράμματος...</div>}
           </section>
-          <footer className="page-footer"><span>Φτιαγμένο για μια πιο ήρεμη καθημερινότητα.</span><span>MediBook <span className="footer-cross">✳</span></span></footer>
+
         </div>
       </div>
       {newBooking && <BookingModal apt={newBooking} canWrite={canWrite} onClose={() => setNewBooking(null)} onRefresh={refreshData} />}
