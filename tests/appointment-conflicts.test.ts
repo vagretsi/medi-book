@@ -83,3 +83,10 @@ test('edit time choices can include slots covered only by the original appointme
   const released = slots.map(slot => slot.id === 1 ? { ...slot, status: 'FREE', duration: 15 } : slot)
   assert.deepEqual(getVisibleSlots(released).filter(slot => slot.status === 'FREE').map(slot => slot.id), [1, 2])
 })
+
+test('moving to another date checks conflicts on the destination date', () => {
+  const original = interval(1, '08:00', 60)
+  const destination = { ...original, date: '2026-10-01T08:00:00+03:00' }
+  assert.equal(findAppointmentConflict(destination, [original]), undefined)
+  assert.equal(findAppointmentConflict(destination, [original, { id: 2, date: '2026-10-01T08:30:00+03:00', duration: 30 }])?.id, 2)
+})

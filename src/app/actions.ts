@@ -237,9 +237,8 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
       if (!Number.isInteger(targetAptId) || targetAptId <= 0) return { error: 'Επίλεξε έγκυρη ώρα.' }
       if (targetAptId !== aptId) {
         const slot = await tx.appointment.findUnique({ where: { id: targetAptId } })
-        const { startOfDay, endOfDay } = getDayBounds(appointment.date)
-        if (!slot || slot.resourceId !== appointment.resourceId || slot.date < startOfDay || slot.date > endOfDay) {
-          return { error: 'Επίλεξε ώρα στο ίδιο ημερολόγιο και την ίδια ημέρα.' }
+        if (!slot || slot.resourceId !== appointment.resourceId) {
+          return { error: 'Επίλεξε ώρα στο ίδιο ημερολόγιο.' }
         }
         if (slot.status !== 'FREE') return { error: 'Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.' }
         destination = slot

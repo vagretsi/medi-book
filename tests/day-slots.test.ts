@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { getBusinessSlotDates, getDayBounds } from '../src/lib/day-slots'
-import { formatBusinessTime, formatBusinessDate } from '../src/lib/business-time'
+import { businessDateKey, formatBusinessTime, formatBusinessDate } from '../src/lib/business-time'
 
 test('future unopened dates use the same 08:00–22:00 schedule', () => {
   const slots = getBusinessSlotDates(new Date('2026-10-01T12:00:00Z'))
@@ -18,4 +18,9 @@ test('advancing the business day stays correct at both daylight-saving transitio
     assert.equal(formatBusinessTime(slots[0]), '08:00')
     assert.notEqual(formatBusinessDate(slots[0]), formatBusinessDate(day))
   }
+})
+
+test('date inputs use the Athens day even when the UTC date differs', () => {
+  assert.equal(businessDateKey('2026-09-30T22:30:00Z'), '2026-10-01')
+  assert.equal(businessDateKey('2026-12-31T22:30:00Z'), '2027-01-01')
 })

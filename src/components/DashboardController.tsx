@@ -96,7 +96,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
 
         </div>
       </div>
-      {newBooking && <BookingModal resources={resources} canWrite={canWrite} onClose={() => setNewBooking(false)} onRefresh={refreshData} />}
+      {newBooking && <BookingModal initialDate={currentDate} resources={resources} canWrite={canWrite} onClose={() => setNewBooking(false)} onRefresh={refreshData} />}
     </div>
   )
 }
