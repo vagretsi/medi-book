@@ -11,3 +11,44 @@
 @media(max-width:950px){.sidebar{width:76px;padding:28px 13px}.brand>span:last-child,.workspace-badge,.nav-caption,.sidebar-bottom{display:none}.sidebar .brand{justify-content:center}.sidebar nav{margin-top:45px}.nav-item{font-size:0;justify-content:center;padding:14px 0}.nav-item svg{width:20px;height:20px;flex-shrink:0}.nav-dot{display:none}.main-shell{margin-left:76px;width:calc(100% - 76px)}.schedule-toolbar{flex-wrap:wrap}.toolbar-inputs{flex:1;justify-content:flex-end}.search-field input{width:135px}.login-page{grid-template-columns:1fr 1fr}.login-story{padding:30px}.login-form-area{padding:25px}.stat-detail{display:none}.story-content h1{font-size:39px}}
 @media(max-width:650px){.sidebar{position:static;width:100%;height:66px;padding:13px 18px;flex-direction:row;align-items:center;justify-content:space-between;border-right:0;border-bottom:1px solid var(--line)}.sidebar .brand>span:last-child{display:block;font-size:22px}.sidebar .brand small{display:none}.brand-mark{height:34px;width:34px;border-radius:10px}.sidebar nav{display:flex;gap:8px;margin:0}.nav-item{margin:0;padding:9px}.nav-item svg{width:17px;height:17px}.app-shell{display:block}.main-shell{margin:0;width:100%}.topbar{height:62px;padding:0 18px}.breadcrumb{font-size:9px;gap:6px}.account{gap:7px}.account-avatar{width:28px;height:28px;font-size:10px}.account strong{font-size:10px}.account small{font-size:8px}.account .icon-button{margin-left:1px;padding:5px}.dashboard-content{padding:25px 17px 18px}.page-heading{align-items:flex-start;flex-direction:column;gap:17px;margin-bottom:22px}h1{font-size:28px;letter-spacing:-1.1px}.page-heading .muted{font-size:11px;max-width:340px}.page-heading .primary-button{font-size:11px;padding:10px 14px}.stats-grid{gap:8px;margin-bottom:27px}.stat-card{padding:12px 10px 0;border-radius:9px}.stat-top{font-size:9px;height:25px}.stat-top>svg,.stat-icon{display:none}.stat-value{font-size:30px;margin:12px 0 16px}.stat-bottom{font-size:8px;line-height:1.6;min-height:47px;padding:8px 0;align-items:center}.stat-bottom svg,.stat-bottom .online-dot{display:none}.section-heading{align-items:flex-start;flex-direction:column;gap:15px}.date-controls{width:100%;justify-content:space-between}.date-switcher{flex:1;justify-content:space-between;max-width:280px}.schedule-toolbar{gap:12px}.segmented-control{width:100%}.segmented-control button{flex:1}.toolbar-inputs{width:100%;justify-content:stretch}.search-field{min-width:0;flex:1}.search-field input{width:100%}.resource-filter{padding-inline:8px}.resource-filter select{max-width:132px;font-size:9px}.resource-filter svg{display:none}.calendars-grid{grid-template-columns:1fr;gap:17px}.calendar-slots{max-height:440px}.calendar-heading{padding:16px}.calendar-heading h3{font-size:14px}.calendar-count{font-size:9px}.patient-details strong{font-size:12px}.appointment-row{min-height:73px}.patient-details span{font-size:10px}.appointment-time{width:47px;font-size:11px}.book-button{padding:7px 10px;font-size:10px}.available-label{font-size:11px}.notes-column{display:flex}.day-tip{padding:18px}.page-footer{font-size:8px;gap:15px;line-height:1.8}.login-page{grid-template-columns:1fr;padding:10px;gap:0}.login-story{min-height:auto;padding:25px;border-radius:16px}.login-story .brand>span:last-child{display:block}.story-content{margin:30px 0 6px;max-width:none}.story-content h1{font-size:34px;letter-spacing:-1.4px;margin:13px 0}.story-content>p{font-size:12px;max-width:none}.story-caption{font-size:8px}.mini-schedule,.login-story footer{display:none}.login-form-area{padding:32px 18px}.login-form-inner h2{font-size:26px}.login-form{margin-top:25px}.login-footer{margin-top:25px}.modal-overlay{padding:12px}.modal-panel{max-height:94svh}.modal-panel form{padding-inline:22px}.loading-indicator{left:17px;bottom:17px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* The selected day is the main visual anchor, before the daily statistics. */
+.day-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 22px 28px;
+  border: 1px solid #286b57;
+  border-radius: 16px;
+  background: #225d4e;
+  color: #fff;
+  box-shadow: 0 6px 20px #173e3510;
+}
+.day-banner-caption { display: flex; align-items: center; gap: 12px; color: #d0e4d8; }
+.day-banner-caption span { max-width: 110px; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; line-height: 1.7; }
+.day-banner-navigation { display: flex; align-items: center; justify-content: center; gap: 22px; min-width: 0; }
+.day-arrow { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border: 1px solid #ffffff30; border-radius: 10px; color: #fff; background: #ffffff0c; }
+.day-arrow:hover, .day-today:hover { background: #ffffff24; }
+.day-banner-date { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; cursor: pointer; }
+.day-banner-weekday { font-size: 16px; font-weight: 500; text-transform: capitalize; color: #d2e6be; }
+.day-banner-value { margin-top: 3px; font-size: clamp(26px, 2.7vw, 40px); font-weight: 650; letter-spacing: -1px; line-height: 1.3; }
+.day-banner-hint { margin-top: 6px; font-size: 10px; color: #cee0d5; }
+.day-banner-date input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.day-banner-date input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.day-banner-date:focus-within { outline: 2px solid #d2e6be; outline-offset: 7px; border-radius: 4px; }
+.day-today { padding: 13px 22px; min-height: 46px; border: 1px solid #ffffff50; border-radius: 9px; background: #ffffff12; color: #fff; font-size: 14px; font-weight: 550; }
+@media (max-width: 1100px) {
+  .day-banner { gap: 14px; padding: 20px; }
+  .day-banner-caption { display: none; }
+  .day-banner-navigation { justify-content: flex-start; gap: 16px; }
+}
+@media (max-width: 650px) {
+  .day-banner { flex-wrap: wrap; justify-content: center; gap: 16px; padding: 20px 12px; }
+  .day-banner-navigation { width: 100%; justify-content: space-between; gap: 7px; }
+  .day-banner-value { font-size: clamp(21px, 5.5vw, 32px); letter-spacing: -.6px; }
+  .day-banner-weekday { font-size: 15px; }
+  .day-arrow { width: 40px; height: 44px; }
+  .day-today { padding: 10px 28px; min-height: 44px; }
+}
