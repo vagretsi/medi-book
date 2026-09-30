@@ -9,7 +9,7 @@ import BookingManager from './BookingManager'
 import BookingModal from './BookingModal'
 import DailyNote from './DailyNote'
 import { getDayAppointments, getDayNote } from '@/app/actions'
-import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
+import type { CalendarResource } from '@/lib/calendar-types'
 import { getVisibleSlots } from '@/lib/visible-slots'
 
 export default function DashboardController({ initialData, initialDayNote }: { initialData: CalendarResource[], initialDayNote: string }) {
@@ -22,14 +22,14 @@ export default function DashboardController({ initialData, initialDayNote }: { i
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedResource, setSelectedResource] = useState('all')
-  const [newBooking, setNewBooking] = useState<AppointmentSlot | null>(null)
+  const [newBooking, setNewBooking] = useState(false)
   const requestId = useRef(0)
   const canWrite = resources.some(r => r.canWrite)
   const username = session?.user?.name || 'Χρήστης'
   const slots = resources.flatMap(r => getVisibleSlots(r.appointments))
   const booked = slots.filter(a => a.status === 'BOOKED').length
   const free = slots.filter(a => a.status === 'FREE').length
-  const firstFree = resources.filter(r => r.canWrite && (selectedResource === 'all' || String(r.id) === selectedResource)).flatMap(r => getVisibleSlots(r.appointments)).filter(a => a.status === 'FREE').sort((a, b) => +new Date(a.date) - +new Date(b.date))[0]
+  const hasFreeSlot = resources.some(r => r.canWrite && getVisibleSlots(r.appointments).some(a => a.status === 'FREE'))
   const visibleResources = resources.filter(r => selectedResource === 'all' || String(r.id) === selectedResource)
 
   const refreshData = useCallback(async (targetDate = currentDate) => {
@@ -61,7 +61,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
       <div className="main-shell">
         <header className="topbar"><div className="breadcrumb">Χώρος εργασίας <ChevronRight size={14} /><strong>Επισκόπηση</strong></div><div className="account"><span className="account-avatar">{username.charAt(0).toUpperCase()}</span><div><strong>{username}</strong><small>{canWrite ? 'Διαχείριση ραντεβού' : 'Πρόσβαση προβολής'}</small></div><button className="icon-button" onClick={() => signOut()} aria-label="Αποσύνδεση" title="Αποσύνδεση"><LogOut size={18} /></button></div></header>
         <div className="dashboard-content" id="overview">
-          <section className="page-heading"><h1>Ραντεβού</h1><button className="primary-button" disabled={!firstFree || loading} onClick={() => setNewBooking(firstFree)}><Plus size={18} /> Νέο ραντεβού</button></section>
+          <section className="page-heading"><h1>Ραντεβού</h1><button className="primary-button" disabled={!hasFreeSlot || loading} onClick={() => setNewBooking(true)}><Plus size={18} /> Νέο ραντεβού</button></section>
           <section className="day-banner" aria-label="Επιλεγμένη ημέρα">
             <div className="day-banner-caption"><CalendarDays size={25} /><span>ΠΡΟΓΡΑΜΜΑ ΗΜΕΡΑΣ</span></div>
             <div className="day-banner-navigation">
@@ -87,7 +87,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
             <div className="schedule-layout" aria-busy={loading}>
               <div className={`calendars-grid ${visibleResources.length === 1 ? 'single-calendar' : ''}`}>
                 {resources.length === 0 && <div className="empty-state"><CalendarDays size={28} /><h3>Δεν υπάρχουν διαθέσιμα ημερολόγια</h3><p>Ζήτησε από τον διαχειριστή πρόσβαση σε ένα ημερολόγιο.</p></div>}
-                {visibleResources.map((resource, index) => <section className="calendar-card" key={resource.id}><div className="calendar-heading"><span className={`calendar-icon ${index % 2 ? 'lilac' : ''}`}><CalendarDays size={19} /></span><div><h3>{resource.name}</h3><p>{resource.groupName || (resource.type === 'MEDICAL' ? 'Ιατρικό ημερολόγιο' : 'Ημερολόγιο ραντεβού')}</p></div><span className="calendar-count">{resource.appointments.filter(a => a.status === 'BOOKED').length} ραντεβού</span></div><div className="calendar-subheading"><span>{format(currentDate, 'EEEE', { locale: el })}</span><span>{resource.canWrite ? 'Ώρα / Ραντεβού' : 'Μόνο προβολή'}</span></div><div className="calendar-slots"><BookingManager appointments={resource.appointments} onRefresh={refreshData} canWrite={resource.canWrite} query={query} filter={filter} /></div></section>)}
+                {visibleResources.map((resource, index) => <section className="calendar-card" key={resource.id}><div className="calendar-heading"><span className={`calendar-icon ${index % 2 ? 'lilac' : ''}`}><CalendarDays size={19} /></span><div><h3>{resource.name}</h3><p>{resource.groupName || (resource.type === 'MEDICAL' ? 'Ιατρικό ημερολόγιο' : 'Ημερολόγιο ραντεβού')}</p></div><span className="calendar-count">{resource.appointments.filter(a => a.status === 'BOOKED').length} ραντεβού</span></div><div className="calendar-subheading"><span>{format(currentDate, 'EEEE', { locale: el })}</span><span>{resource.canWrite ? 'Ώρα / Ραντεβού' : 'Μόνο προβολή'}</span></div><div className="calendar-slots"><BookingManager resourceName={resource.name} appointments={resource.appointments} onRefresh={refreshData} canWrite={resource.canWrite} query={query} filter={filter} /></div></section>)}
               </div>
               <aside id="notes" className="notes-column"><DailyNote key={format(currentDate, 'yyyy-MM-dd')} dateStr={currentDate.toISOString()} initialContent={dayNote} canWrite={canWrite} /></aside>
             </div>
@@ -96,7 +96,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
 
         </div>
       </div>
-      {newBooking && <BookingModal apt={newBooking} canWrite={canWrite} onClose={() => setNewBooking(null)} onRefresh={refreshData} />}
+      {newBooking && <BookingModal resources={resources} canWrite={canWrite} onClose={() => setNewBooking(false)} onRefresh={refreshData} />}
     </div>
   )
 }

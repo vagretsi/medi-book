@@ -3,17 +3,27 @@ import { useState, useCallback } from 'react'
 import ModalFrame from './ModalFrame'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
-import type { AppointmentSlot } from '@/lib/calendar-types'
+import { getVisibleSlots } from '@/lib/visible-slots'
+import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
 import { formatBusinessTime } from '@/lib/business-time'
 
-// ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
-export default function BookingModal({ apt, onClose, onRefresh, canWrite }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
+export default function BookingModal({ apt: initialApt, resources = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], resourceName?: string, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
+  const [resourceId, setResourceId] = useState('')
+  const [slotId, setSlotId] = useState('')
+  const writableResources = resources.filter(resource => resource.canWrite)
+  const selectedResource = writableResources.find(resource => String(resource.id) === resourceId)
+  const freeSlots = selectedResource
+    ? getVisibleSlots(selectedResource.appointments).filter(slot => slot.status === 'FREE').sort((a, b) => +new Date(a.date) - +new Date(b.date))
+    : []
+  const apt = initialApt ?? freeSlots.find(slot => String(slot.id) === slotId)
+  const calendarName = resourceName ?? selectedResource?.name
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const close = useCallback(() => { if (!loading) onClose() }, [loading, onClose])
 
   async function handleSubmit(formData: FormData) {
-    if (!canWrite) return
+    if (!canWrite || !apt) return
+    formData.set('aptId', String(apt.id))
 
     setLoading(true)
     setError('')
@@ -34,7 +44,7 @@ export default function BookingModal({ apt, onClose, onRefresh, canWrite }: { ap
             <div>
               <h3 className="font-bold text-lg leading-tight">Νέα Κράτηση</h3>
               <p className="text-blue-200 text-xs font-mono uppercase tracking-widest">
-                Έναρξη: {formatBusinessTime(apt.date)}
+                {apt ? `${calendarName ? `${calendarName} · ` : ''}${formatBusinessTime(apt.date)}` : 'Επίλεξε ημερολόγιο και ώρα'}
               </p>
             </div>
           </div>
@@ -43,7 +53,24 @@ export default function BookingModal({ apt, onClose, onRefresh, canWrite }: { ap
 
         <form action={handleSubmit} className="p-8 space-y-5">
           {error && <p className="error-banner" role="alert">{error}</p>}
-          <input type="hidden" name="aptId" value={apt.id} />
+          {!initialApt && <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="booking-resource" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ημερολόγιο</label>
+              <select id="booking-resource" required disabled={loading} value={resourceId} onChange={event => { setResourceId(event.target.value); setSlotId(''); setError('') }} className="w-full p-3 rounded-xl">
+                <option value="" disabled>Ιατρείο ή Laser;</option>
+                {writableResources.map(resource => <option key={resource.id} value={resource.id}>{resource.name}</option>)}
+              </select>
+            </div>
+            {selectedResource && <div className="space-y-1.5">
+              <label htmlFor="booking-time" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ώρα</label>
+              {freeSlots.length ? <select id="booking-time" required disabled={loading} value={slotId} onChange={event => { setSlotId(event.target.value); setError('') }} className="w-full p-3 rounded-xl">
+                <option value="" disabled>Επίλεξε ώρα</option>
+                {freeSlots.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
+              </select> : <p role="status" className="muted">Δεν υπάρχουν διαθέσιμες ώρες σε αυτό το ημερολόγιο.</p>}
+            </div>}
+          </div>}
+          {apt && <input type="hidden" name="aptId" value={apt.id} />}
+          <fieldset disabled={!apt || loading} className="space-y-5 disabled:opacity-50">
           
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Όνομα Ασθενή</label>
@@ -72,7 +99,8 @@ export default function BookingModal({ apt, onClose, onRefresh, canWrite }: { ap
             <textarea aria-label="Σημειώσεις" name="notes" rows={3} readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="Σημειώσεις..." />
           </div>
 
-          <button type="submit" disabled={loading || !canWrite} className={`w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all transform shadow-xl shadow-white/5 ${canWrite ? 'bg-white text-slate-950 hover:bg-blue-500 hover:text-white active:scale-95' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>
+          </fieldset>
+          <button type="submit" disabled={loading || !canWrite || !apt} className={`w-full py-4 rounded-2xl font-black uppercase tracking-tighter transition-all transform shadow-xl shadow-white/5 ${canWrite ? 'bg-white text-slate-950 hover:bg-blue-500 hover:text-white active:scale-95' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}`}>
             {!canWrite ? 'ΠΡΟΒΟΛΗ ΜΟΝΟ' : loading ? 'ΚΡΑΤΗΣΗ...' : 'ΕΠΙΒΕΒΑΙΩΣΗ'}
           </button>
         </form>
