@@ -61,3 +61,25 @@ test('next-day proposal skips an occupied morning', () => {
   const morning = { id: 50, date: '2026-10-01T08:00:00+03:00', duration: 60 }
   assert.equal(findNextAvailableSlot(interval(1, '21:45', 60).date, 60, nextDay, [morning])?.id, 104)
 })
+
+test('morning-first search proposes an earlier free start on the same day', () => {
+  const slots = [freeSlot(10, '08:00'), freeSlot(11, '08:15'), freeSlot(12, '14:00'), freeSlot(13, '14:15')]
+  const startOfDay = '2026-09-30T00:00:00+03:00'
+  assert.equal(findNextAvailableSlot(startOfDay, 30, slots, [interval(9, '13:00', 60)])?.id, 10)
+})
+test('moving a booking may overlap its old time but must not overlap another booking', () => {
+  const original = interval(1, '08:00', 60)
+  const next = interval(2, '09:15', 30)
+  assert.equal(findAppointmentConflict({ ...original, date: interval(1, '08:15', 30).date }, [original, next]), undefined)
+  assert.equal(findAppointmentConflict({ ...original, date: interval(1, '08:30', 60).date }, [original, next])?.id, 2)
+})
+test('edit time choices can include slots covered only by the original appointment', () => {
+  const slots = [
+    { ...interval(1, '08:00', 60), status: 'BOOKED' },
+    { ...interval(2, '08:15', 15), status: 'FREE' },
+    { ...interval(3, '08:30', 30), status: 'BOOKED' },
+    { ...interval(4, '08:45', 15), status: 'FREE' },
+  ].map(slot => ({ ...slot, resourceId: 1, patientName: null, patientTel: null, notes: null }))
+  const released = slots.map(slot => slot.id === 1 ? { ...slot, status: 'FREE', duration: 15 } : slot)
+  assert.deepEqual(getVisibleSlots(released).filter(slot => slot.status === 'FREE').map(slot => slot.id), [1, 2])
+})

@@ -210,7 +210,7 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
           id: -(index + 1), date, status: 'FREE', duration: 15, resourceId: target!.resourceId,
           patientName: null, patientTel: null, notes: null,
         })
-        const next = findNextAvailableSlot(target!.date, duration, slots, allBookings)
+        const next = findNextAvailableSlot(startOfDay, duration, slots, allBookings)
         if (next) {
           // Materialize only the selected day so the suggested time has a real booking ID.
           await tx.appointment.createMany({
@@ -231,21 +231,42 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
       return { error: 'Το ραντεβού έχει ακυρωθεί. Ανανέωσε το πρόγραμμα.' }
     }
 
-    const end = new Date(appointment.date.getTime() + duration * 60_000)
+    let destination = appointment
+    if (mode === 'edit' && formData.has('targetAptId')) {
+      const targetAptId = Number(formData.get('targetAptId'))
+      if (!Number.isInteger(targetAptId) || targetAptId <= 0) return { error: 'Επίλεξε έγκυρη ώρα.' }
+      if (targetAptId !== aptId) {
+        const slot = await tx.appointment.findUnique({ where: { id: targetAptId } })
+        const { startOfDay, endOfDay } = getDayBounds(appointment.date)
+        if (!slot || slot.resourceId !== appointment.resourceId || slot.date < startOfDay || slot.date > endOfDay) {
+          return { error: 'Επίλεξε ώρα στο ίδιο ημερολόγιο και την ίδια ημέρα.' }
+        }
+        if (slot.status !== 'FREE') return { error: 'Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.' }
+        destination = slot
+      }
+    }
+
+    const end = new Date(destination.date.getTime() + duration * 60_000)
     // No lower date bound: include bookings that began before this day as well.
     const bookings = await tx.appointment.findMany({
       where: { resourceId: appointment.resourceId, status: 'BOOKED', id: { not: aptId }, date: { lt: end } },
       select: { id: true, date: true, duration: true },
       orderBy: { date: 'asc' },
     })
-    const conflict = findAppointmentConflict({ ...appointment, duration }, bookings)
+    const conflict = findAppointmentConflict({ id: aptId, date: destination.date, duration }, bookings)
     if (conflict) {
       return conflictResult(`Υπάρχει ήδη ραντεβού στις ${formatBusinessTime(conflict.date)}. Επίλεξε μικρότερη διάρκεια ή άλλη ώρα.`)
     }
     await tx.appointment.update({
-      where: { id: aptId },
+      where: { id: destination.id },
       data: { status: 'BOOKED', patientName, patientTel, notes: String(formData.get('notes') ?? ''), duration },
     })
+    if (destination.id !== aptId) {
+      await tx.appointment.update({
+        where: { id: aptId },
+        data: { status: 'FREE', patientName: null, patientTel: null, notes: null, duration: 15 },
+      })
+    }
     return { error: null }
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
 

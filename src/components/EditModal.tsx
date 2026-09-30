@@ -3,10 +3,18 @@ import { useState, useCallback } from 'react'
 import ModalFrame from './ModalFrame'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
 import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
+import { formatBusinessTime } from '@/lib/business-time'
+import { getVisibleSlots } from '@/lib/visible-slots'
 import type { AppointmentSlot } from '@/lib/calendar-types'
 
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
-export default function EditModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
+export default function EditModal({ apt, appointments, onClose, onRefresh }: { apt: AppointmentSlot, appointments: AppointmentSlot[], onClose: () => void, onRefresh: () => Promise<void> }) {
+  const [targetAptId, setTargetAptId] = useState(String(apt.id))
+  // Release this booking only for the preview of available start times.
+  const timeOptions = getVisibleSlots(appointments.filter(slot => slot.resourceId === apt.resourceId).map(slot => slot.id === apt.id ? { ...slot, status: 'FREE', duration: 15 } : slot))
+    .filter(slot => slot.status === 'FREE' || slot.id === apt.id)
+    .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+  if (!timeOptions.some(slot => slot.id === apt.id)) timeOptions.push(apt)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const close = useCallback(() => { if (!loading) onClose() }, [loading, onClose])
@@ -54,6 +62,12 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
           <form onSubmit={event => { event.preventDefault(); void handleUpdate(new FormData(event.currentTarget)) }} className="space-y-4">
             {error && <p className="error-banner" role="alert">{error}</p>}
           <input type="hidden" name="aptId" value={apt.id} />
+            <div className="space-y-2">
+              <label htmlFor="edit-booking-time" className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Clock className="w-3 h-3" /> Ώρα</label>
+              <select id="edit-booking-time" name="targetAptId" value={targetAptId} disabled={loading} onChange={event => { setTargetAptId(event.target.value); setError('') }} className="w-full p-3 rounded-xl" required>
+                {timeOptions.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
+              </select>
+            </div>
             
             <div className="space-y-2">
               <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><User className="w-3 h-3"/> Όνομα Ασθενή</label>
