@@ -2,95 +2,24 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Lock, User, Loader2, KeyRound } from 'lucide-react'
+import { LockKeyhole, UserRound, Loader2, ArrowRight, HeartPulse, CalendarDays, Check, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    const res = await signIn('credentials', {
-      username: username.toLowerCase(), // Το μετατρέπουμε σε πεζά για σιγουριά
-      password,
-      redirect: false,
-    })
-
-    if (res?.error) {
-      setError('Λάθος στοιχεία πρόσβασης')
-      setLoading(false)
-    } else {
-      router.push('/')
-      router.refresh()
-    }
+    try {
+      const res = await signIn('credentials', { username: username.trim().toLowerCase(), password, redirect: false })
+      if (res?.error || !res?.ok) { setError('Τα στοιχεία πρόσβασης δεν είναι σωστά. Δοκίμασε ξανά.'); setLoading(false) }
+      else { router.push('/'); router.refresh() }
+    } catch { setError('Δεν ήταν δυνατή η σύνδεση. Δοκίμασε ξανά.'); setLoading(false) }
   }
-
-  return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-slate-800/40 backdrop-blur-xl p-10 rounded-[40px] border border-slate-700/50 shadow-2xl">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
-            <Lock className="text-white w-8 h-8" />
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter">MEDIBOOK</h1>
-          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Restricted Access</p>
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-slate-200">
-          <div className="flex items-start gap-3">
-            <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-blue-200">Demo access</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Use <span className="font-bold text-white">demo</span> for username and{' '}
-                <span className="font-bold text-white">demo</span> for password.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Username"
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all tracking-widest"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              type="password"
-              placeholder="Password"
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white text-sm outline-none focus:border-blue-500 transition-all tracking-widest"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          {error && <p className="text-red-400 text-[10px] font-black uppercase text-center tracking-widest">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-widest text-xs"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Login'}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
+  return <div className="login-page"><section className="login-story"><a className="brand" href="/login"><span className="brand-mark"><HeartPulse size={24} /></span><span>medi<span className="brand-light">book</span><small>CARE, ORGANIZED.</small></span></a><div className="story-content"><span className="story-caption">Ο ΧΡΟΝΟΣ ΣΟΥ, ΜΕΤΡΑΕΙ.</span><h1>Κάθε ημέρα,<br />λίγο πιο <span>απλή.</span></h1><p>Δώσε χώρο σε ό,τι έχει σημασία. Τα ραντεβού και η οργάνωση του ιατρείου σου ξεκινούν εδώ.</p><div className="mini-schedule" aria-label="Ενδεικτικό πρόγραμμα"><div><span>Μια ματιά στην ημέρα σου</span><CalendarDays size={16} /></div><div className="mini-appointment"><span>09:00</span><div>Πρώτο ραντεβού <Check size={14} /></div></div><div className="mini-appointment"><span>09:30</span><div>Χρόνος για φροντίδα <HeartPulse size={14} /></div></div></div></div><footer>Λιγότερη οργάνωση. Περισσότερη φροντίδα.</footer><div className="story-orbit" /></section><section className="login-form-area"><div className="login-form-inner"><p className="eyebrow"><span className="online-dot" /> ΚΑΛΩΣ ΗΡΘΕΣ ΣΤΟ MEDIBOOK</p><h2>Χαίρομαστε που είσαι εδώ.</h2><p className="muted">Συνδέσου στον χώρο εργασίας σου.<br />Το πρόγραμμά σου σε περιμένει.</p><form className="login-form" onSubmit={handleSubmit}><label className="form-field" htmlFor="username"><span>Όνομα χρήστη</span><div className="input-wrap"><UserRound size={16} /><input id="username" autoComplete="username" placeholder="Το όνομα χρήστη σου" value={username} onChange={e => setUsername(e.target.value)} required /></div></label><label className="form-field" htmlFor="password"><span>Κωδικός πρόσβασης</span><div className="input-wrap"><LockKeyhole size={16} /><input id="password" autoComplete="current-password" type={showPassword ? 'text' : 'password'} placeholder="Ο κωδικός σου" value={password} onChange={e => setPassword(e.target.value)} required /><button type="button" className="password-toggle" aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>{error && <p className="error-banner" role="alert">{error}</p>}<button type="submit" className="primary-button" disabled={loading}>{loading ? <><Loader2 size={17} className="animate-spin" /> Σύνδεση...</> : <>Σύνδεση στον χώρο μου <ArrowRight size={16} /></>}</button></form><div className="demo-access"><Sparkles size={17} /><div><strong>Μια πρώτη γνωριμία με το MediBook</strong><p>Δοκίμασε την εφαρμογή με όνομα χρήστη <b>demo</b><br />και κωδικό <b>demo</b>.</p><button type="button" onClick={() => { setUsername('demo'); setPassword('demo'); setError('') }}>Συμπλήρωση στοιχείων demo <span aria-hidden="true">↗</span></button></div></div><p className="login-footer"><ShieldCheck size={13} /> Ο δικός σου χώρος για την οργάνωση του ιατρείου.</p></div></section></div>
 }

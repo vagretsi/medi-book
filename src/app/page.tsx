@@ -12,7 +12,7 @@ export default async function Page() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200">
+    <div className="min-h-screen">
         <DashboardController initialData={initialResources} initialDayNote={initialDayNote} />
     </div>
   );

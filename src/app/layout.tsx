@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin", "greek"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "MediBook | Dashboard",
@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="el">
-      <body className={`${inter.className} bg-[#0f172a] text-slate-200 antialiased`}>
+      <body className={`${inter.className} ${inter.variable} antialiased`}>
         <Providers>
           <main className="min-h-screen">
             {children}

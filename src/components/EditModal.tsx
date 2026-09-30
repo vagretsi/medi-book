@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import ModalFrame from './ModalFrame'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
 import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
 import type { AppointmentSlot } from '@/lib/calendar-types'
@@ -7,32 +8,41 @@ import type { AppointmentSlot } from '@/lib/calendar-types'
 // ΠΡΟΣΟΧΗ: Εδώ προσθέσαμε το onRefresh
 export default function EditModal({ apt, onClose, onRefresh }: { apt: AppointmentSlot, onClose: () => void, onRefresh: () => Promise<void> }) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const close = useCallback(() => { if (!loading) onClose() }, [loading, onClose])
 
   async function handleUpdate(formData: FormData) {
     setLoading(true)
-    await updateAppointment(formData)
-    await onRefresh() // Καλούμε το refresh μετά την αλλαγή
-    setLoading(false)
-    onClose()
+    setError('')
+    try {
+      await updateAppointment(formData)
+      await onRefresh()
+      onClose()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Δεν ήταν δυνατή η αποθήκευση.')
+    } finally { setLoading(false) }
   }
 
   async function handleCancel(formData: FormData) {
     if(!confirm("Είστε σίγουροι για την ακύρωση;")) return;
     setLoading(true)
-    await cancelAppointment(formData)
-    await onRefresh() // Καλούμε το refresh μετά την ακύρωση
-    setLoading(false)
-    onClose()
+    setError('')
+    try {
+      await cancelAppointment(formData)
+      await onRefresh()
+      onClose()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Δεν ήταν δυνατή η αποθήκευση.')
+    } finally { setLoading(false) }
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+    <ModalFrame title="Επεξεργασία ραντεβού" onClose={close}>
         
         {/* HEADER */}
         <div className="bg-slate-800 p-6 flex justify-between items-center border-b border-slate-700">
           <h3 className="font-bold text-white text-lg">Επεξεργασία Ραντεβού</h3>
-          <button onClick={onClose} className="hover:bg-white/10 p-2 rounded-full text-white transition-colors">
+          <button aria-label="Κλείσιμο" disabled={loading} onClick={close} className="hover:bg-white/10 p-2 rounded-full text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -40,32 +50,34 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
         {/* FORM */}
         <div className="p-6 space-y-6">
           <form action={handleUpdate} className="space-y-4">
-            <input type="hidden" name="aptId" value={apt.id} />
+            {error && <p className="error-banner" role="alert">{error}</p>}
+          <input type="hidden" name="aptId" value={apt.id} />
             
             <div className="space-y-2">
               <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><User className="w-3 h-3"/> Όνομα Ασθενή</label>
-              <input name="patientName" defaultValue={apt.patientName ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
+              <input aria-label="Όνομα ασθενή" name="patientName" defaultValue={apt.patientName ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Phone className="w-3 h-3"/> Τηλέφωνο</label>
-                <input name="patientTel" defaultValue={apt.patientTel ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
+                <input type="tel" aria-label="Τηλέφωνο" name="patientTel" defaultValue={apt.patientTel ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
               </div>
               <div className="space-y-2">
                  <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Clock className="w-3 h-3"/> Διάρκεια</label>
-                 <select name="duration" defaultValue={apt.duration || 30} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none">
+                 <select aria-label="Διάρκεια" name="duration" defaultValue={apt.duration || 30} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none">
                     <option value="15">15 Λεπτά</option>
                     <option value="30">30 Λεπτά</option>
                     <option value="45">45 Λεπτά</option>
                     <option value="60">1 Ώρα</option>
+                    <option value="90">1.5 Ώρα</option>
                  </select>
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><FileText className="w-3 h-3"/> Σημειώσεις</label>
-              <textarea name="notes" defaultValue={apt.notes ?? ''} rows={3} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" />
+              <textarea aria-label="Σημειώσεις" name="notes" defaultValue={apt.notes ?? ''} rows={3} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" />
             </div>
 
             <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
@@ -81,7 +93,6 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
             </button>
           </form>
         </div>
-      </div>
-    </div>
+    </ModalFrame>
   )
 }
