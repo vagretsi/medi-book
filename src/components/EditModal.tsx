@@ -12,6 +12,7 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
   const close = useCallback(() => { if (!loading) onClose() }, [loading, onClose])
 
   async function handleUpdate(formData: FormData) {
+    if (loading) return
     setLoading(true)
     setError('')
     try {
@@ -50,7 +51,7 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
 
         {/* FORM */}
         <div className="p-6 space-y-6">
-          <form action={handleUpdate} className="space-y-4">
+          <form onSubmit={event => { event.preventDefault(); void handleUpdate(new FormData(event.currentTarget)) }} className="space-y-4">
             {error && <p className="error-banner" role="alert">{error}</p>}
           <input type="hidden" name="aptId" value={apt.id} />
             

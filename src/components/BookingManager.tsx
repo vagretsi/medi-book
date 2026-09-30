@@ -19,7 +19,7 @@ export default function BookingManager({ appointments, onRefresh, canWrite, reso
         <div className="appointment-time">{formatBusinessTime(apt.date)}<small>{apt.duration}′</small></div>
         {apt.status === 'BOOKED' ? <div className="appointment-content"><div className="patient-avatar">{apt.patientName?.charAt(0).toUpperCase() || '•'}</div><div className="patient-details"><strong>{apt.patientName}</strong><span><Phone size={11} />{apt.patientTel}</span>{apt.notes && <p title={apt.notes}>{apt.notes}</p>}</div>{canWrite && <button className="edit-booking" aria-label={`Επεξεργασία ραντεβού ${apt.patientName}`} onClick={() => setEditingApt(apt)}><Pencil size={14} /></button>}</div> : <div className="appointment-content"><span className="available-label"><span /> Διαθέσιμο</span>{canWrite ? <button className="book-button" aria-label={`Κράτηση στις ${formatBusinessTime(apt.date)}`} onClick={() => setSelectedApt(apt)}><Plus size={14} /> Κράτηση</button> : <span className="read-only-label">Προβολή</span>}</div>}
       </div>)}
-      {selectedApt && <BookingModal resourceName={resourceName} apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} canWrite={canWrite} />}
+      {selectedApt && <BookingModal appointments={appointments} resourceName={resourceName} apt={selectedApt} onClose={() => setSelectedApt(null)} onRefresh={onRefresh} canWrite={canWrite} />}
       {editingApt && canWrite && <EditModal apt={editingApt} onClose={() => setEditingApt(null)} onRefresh={onRefresh} />}
     </div>
   )

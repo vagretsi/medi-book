@@ -7,22 +7,23 @@ import { getVisibleSlots } from '@/lib/visible-slots'
 import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
 import { formatBusinessTime } from '@/lib/business-time'
 
-export default function BookingModal({ apt: initialApt, resources = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], resourceName?: string, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
+export default function BookingModal({ apt: initialApt, resources = [], appointments = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], appointments?: AppointmentSlot[], resourceName?: string, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
   const [resourceId, setResourceId] = useState('')
-  const [slotId, setSlotId] = useState('')
+  const [slotId, setSlotId] = useState(initialApt ? String(initialApt.id) : '')
   const writableResources = resources.filter(resource => resource.canWrite)
   const selectedResource = writableResources.find(resource => String(resource.id) === resourceId)
-  const freeSlots = selectedResource
-    ? getVisibleSlots(selectedResource.appointments).filter(slot => slot.status === 'FREE').sort((a, b) => +new Date(a.date) - +new Date(b.date))
-    : []
-  const apt = initialApt ?? freeSlots.find(slot => String(slot.id) === slotId)
+  const calendarSlots = initialApt
+    ? appointments.filter(slot => slot.resourceId === initialApt.resourceId)
+    : selectedResource?.appointments ?? []
+  const freeSlots = getVisibleSlots(calendarSlots).filter(slot => slot.status === 'FREE').sort((a, b) => +new Date(a.date) - +new Date(b.date))
+  const apt = freeSlots.find(slot => String(slot.id) === slotId)
   const calendarName = resourceName ?? selectedResource?.name
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const close = useCallback(() => { if (!loading) onClose() }, [loading, onClose])
 
   async function handleSubmit(formData: FormData) {
-    if (!canWrite || !apt) return
+    if (loading || !canWrite || !apt) return
     formData.set('aptId', String(apt.id))
 
     setLoading(true)
@@ -52,24 +53,24 @@ export default function BookingModal({ apt: initialApt, resources = [], resource
           <button aria-label="Κλείσιμο" disabled={loading} onClick={close} className="hover:bg-white/20 p-2 rounded-full transition-colors"><X className="w-5 h-5" /></button>
         </div>
 
-        <form action={handleSubmit} className="p-8 space-y-5">
+        <form onSubmit={event => { event.preventDefault(); void handleSubmit(new FormData(event.currentTarget)) }} className="p-8 space-y-5">
           {error && <p className="error-banner" role="alert">{error}</p>}
-          {!initialApt && <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="space-y-4">
+            {!initialApt && <div className="space-y-1.5">
               <label htmlFor="booking-resource" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ημερολόγιο</label>
               <select id="booking-resource" required disabled={loading} value={resourceId} onChange={event => { setResourceId(event.target.value); setSlotId(''); setError('') }} className="w-full p-3 rounded-xl">
                 <option value="" disabled>Ιατρείο ή Laser;</option>
                 {writableResources.map(resource => <option key={resource.id} value={resource.id}>{resource.name}</option>)}
               </select>
-            </div>
-            {selectedResource && <div className="space-y-1.5">
+            </div>}
+            {(initialApt || selectedResource) && <div className="space-y-1.5">
               <label htmlFor="booking-time" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ώρα</label>
               {freeSlots.length ? <select id="booking-time" required disabled={loading} value={slotId} onChange={event => { setSlotId(event.target.value); setError('') }} className="w-full p-3 rounded-xl">
                 <option value="" disabled>Επίλεξε ώρα</option>
                 {freeSlots.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
               </select> : <p role="status" className="muted">Δεν υπάρχουν διαθέσιμες ώρες σε αυτό το ημερολόγιο.</p>}
             </div>}
-          </div>}
+          </div>
           {apt && <input type="hidden" name="aptId" value={apt.id} />}
           <fieldset disabled={!apt || loading} className="space-y-5 disabled:opacity-50">
           
