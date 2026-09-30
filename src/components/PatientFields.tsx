@@ -13,6 +13,7 @@ export default function PatientFields({ resourceId, initialName = '', initialPho
   const [selectedResourceId, setSelectedResourceId] = useState(resourceId)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [activeField, setActiveField] = useState<'name' | 'phone'>('name')
   const [result, setResult] = useState<{ key: string; patients: PatientOption[]; failed: boolean } | null>(null)
   const key = `${resourceId}:${query}`
   useEffect(() => {
@@ -28,13 +29,15 @@ export default function PatientFields({ resourceId, initialName = '', initialPho
   function select(patient: PatientOption) {
     setName(patient.fullName); setPhone(patient.phone); setSelected(patient); setSelectedResourceId(resourceId); setOpen(false)
   }
+  const suggestions = open && resourceId && query.trim().length >= 2 && <div className="patient-suggestions" aria-label="Προτεινόμενοι ασθενείς">
+      {result?.key !== key ? <p role="status">Αναζήτηση...</p> : result.failed ? <p role="status">Η αναζήτηση δεν είναι διαθέσιμη. Μπορείς να συμπληρώσεις τα στοιχεία.</p> : result.patients.length ? result.patients.map(patient => <button key={patient.id} type="button" onClick={() => select(patient)}><strong>{patient.fullName}</strong><span>{patient.phone}</span></button>) : <p>Νέος ασθενής — το προφίλ δημιουργείται με την κράτηση.</p>}
+    </div>
   return <div className="patient-fields" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false) }}>
     <input type="hidden" name="patientId" value={selectedMatches ? selected?.id ?? '' : ''} />
-    <label className="patient-field"><span>Όνομα ασθενή</span><input name="patientName" maxLength={200} aria-label="Όνομα ασθενή" value={name} required disabled={disabled} autoComplete="off" placeholder="Όνομα ή αναζήτηση ασθενούς..." onChange={event => { setName(event.target.value); setQuery(event.target.value); setSelected(null); setOpen(true) }} onFocus={() => { setQuery(name); setOpen(true) }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false) } }} /></label>
-    <label className="patient-field"><span>Τηλέφωνο</span><input name="patientTel" maxLength={40} aria-label="Τηλέφωνο" type="tel" value={phone} required disabled={disabled} autoComplete="off" placeholder="Τηλέφωνο ή αναζήτηση..." onChange={event => { setPhone(event.target.value); setQuery(event.target.value); setSelected(null); setOpen(true) }} onFocus={() => { setQuery(phone); setOpen(true) }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false) } }} /></label>
+    <label className="patient-field"><span>Όνομα ασθενή</span><input name="patientName" maxLength={200} aria-label="Όνομα ασθενή" value={name} required disabled={disabled} autoComplete="off" placeholder="Όνομα ή αναζήτηση ασθενούς..." onChange={event => { setName(event.target.value); setQuery(event.target.value); setSelected(null); setActiveField('name'); setOpen(true) }} onFocus={() => { setQuery(name); setActiveField('name'); setOpen(true) }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false) } }} /></label>
+    {activeField === 'name' && suggestions}
+    <label className="patient-field"><span>Τηλέφωνο</span><input name="patientTel" maxLength={40} aria-label="Τηλέφωνο" type="tel" value={phone} required disabled={disabled} autoComplete="off" placeholder="Τηλέφωνο ή αναζήτηση..." onChange={event => { setPhone(event.target.value); setQuery(event.target.value); setSelected(null); setActiveField('phone'); setOpen(true) }} onFocus={() => { setQuery(phone); setActiveField('phone'); setOpen(true) }} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false) } }} /></label>
+    {activeField === 'phone' && suggestions}
     {selectedMatches && <p className="patient-selected">✓ Υπάρχων ασθενής</p>}
-    {open && resourceId && query.trim().length >= 2 && <div className="patient-suggestions" aria-label="Προτεινόμενοι ασθενείς">
-      {result?.key !== key ? <p role="status">Αναζήτηση...</p> : result.failed ? <p role="status">Η αναζήτηση δεν είναι διαθέσιμη. Μπορείς να συμπληρώσεις τα στοιχεία.</p> : result.patients.length ? result.patients.map(patient => <button key={patient.id} type="button" onClick={() => select(patient)}><strong>{patient.fullName}</strong><span>{patient.phone}</span></button>) : <p>Νέος ασθενής — το προφίλ δημιουργείται με την κράτηση.</p>}
-    </div>}
   </div>
 }
