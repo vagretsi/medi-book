@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useCalendarDaySlots } from './useCalendarDaySlots'
+import { getAppointmentTimeError } from '@/lib/appointment-duration'
 import ModalFrame from './ModalFrame'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
@@ -34,6 +35,8 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
 
   async function handleSubmit(formData: FormData) {
     if (loading || daySlots.loading || daySlots.error || !canWrite || !apt) return
+    const timeError = getAppointmentTimeError(apt.date, Number(formData.get('duration')))
+    if (timeError) { setError(timeError); setSuggestion(null); setSuggestedDuration(null); return }
     formData.set('aptId', String(apt.id))
 
     setLoading(true)
@@ -119,6 +122,8 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
                   <option value="45">45 Λεπτά</option>
                   <option value="60">1 Ώρα</option>
                   <option value="90">1.5 Ώρα</option>
+                  <option value="240">4 Ώρες</option>
+                  <option value="480">8 Ώρες</option>
                </select>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { ensureDaySlots, getDayBounds, getBusinessSlotDates } from '@/lib/day-slots'
 import { authOptions } from '@/lib/auth'
+import { APPOINTMENT_DURATIONS, getAppointmentTimeError } from '@/lib/appointment-duration'
 import { findAppointmentConflict, findNextAvailableSlot } from '@/lib/appointment-conflicts'
 import { formatBusinessTime } from '@/lib/business-time'
 import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
@@ -179,7 +180,7 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
   const aptId = Number(formData.get('aptId'))
   const duration = Number(formData.get('duration'))
   if (!Number.isInteger(aptId) || aptId <= 0) return { error: 'Μη έγκυρο ραντεβού.' }
-  if (![15, 30, 45, 60, 90].includes(duration)) return { error: 'Επίλεξε έγκυρη διάρκεια.' }
+  if (!APPOINTMENT_DURATIONS.some(value => value === duration)) return { error: 'Επίλεξε έγκυρη διάρκεια.' }
   const patientName = String(formData.get('patientName') ?? '').trim()
   const patientTel = String(formData.get('patientTel') ?? '').trim()
   if (!patientName || !patientTel) return { error: 'Συμπλήρωσε όνομα και τηλέφωνο.' }
@@ -244,6 +245,9 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
         destination = slot
       }
     }
+
+    const timeError = getAppointmentTimeError(destination.date, duration)
+    if (timeError) return { error: timeError }
 
     const end = new Date(destination.date.getTime() + duration * 60_000)
     // No lower date bound: include bookings that began before this day as well.

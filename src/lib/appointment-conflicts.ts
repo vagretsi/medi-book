@@ -1,3 +1,5 @@
+import { getAppointmentTimeError } from './appointment-duration'
+
 type Interval = { id: number; date: Date | string; duration: number }
 
 export function findAppointmentConflict(candidate: Interval, bookings: Interval[]) {
@@ -14,7 +16,7 @@ export function findNextAvailableSlot<T extends Interval & { status: string }>(a
   const times = new Set(free.map(slot => +new Date(slot.date)))
   return free.find(slot => {
     const start = +new Date(slot.date)
-    if (start <= +new Date(after) || findAppointmentConflict({ ...slot, duration }, bookings)) return false
+    if (start <= +new Date(after) || getAppointmentTimeError(slot.date, duration) || findAppointmentConflict({ ...slot, duration }, bookings)) return false
     for (let minute = 0; minute < duration; minute += 15) {
       if (!times.has(start + minute * 60_000)) return false
     }

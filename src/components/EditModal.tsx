@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback } from 'react'
 import { useCalendarDaySlots } from './useCalendarDaySlots'
+import { getAppointmentTimeError } from '@/lib/appointment-duration'
 import ModalFrame from './ModalFrame'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
 import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
@@ -26,6 +27,8 @@ export default function EditModal({ apt, appointments, onClose, onRefresh }: { a
   async function handleUpdate(formData: FormData) {
     const destination = timeOptions.find(slot => String(slot.id) === targetAptId)
     if (loading || daySlots.loading || daySlots.error || !destination) return
+    const timeError = getAppointmentTimeError(destination.date, Number(formData.get('duration')))
+    if (timeError) { setError(timeError); return }
     setLoading(true)
     setError('')
     try {
@@ -98,6 +101,8 @@ export default function EditModal({ apt, appointments, onClose, onRefresh }: { a
                     <option value="45">45 Λεπτά</option>
                     <option value="60">1 Ώρα</option>
                     <option value="90">1.5 Ώρα</option>
+                  <option value="240">4 Ώρες</option>
+                  <option value="480">8 Ώρες</option>
                  </select>
               </div>
             </div>
