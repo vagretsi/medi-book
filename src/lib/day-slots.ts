@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 
 const START_HOUR = 8
 const END_HOUR = 22
@@ -62,6 +62,16 @@ export function getDayBounds(dateInput: Date) {
   const endOfDay = new Date(businessTimeToUtc(nextDayParts.year, nextDayParts.month, nextDayParts.day, 0).getTime() - 1)
 
   return { startOfDay, endOfDay }
+}
+
+/** The same 08:00–22:00 Athens schedule used when opening a calendar day. */
+export function getBusinessSlotDates(dateInput: Date) {
+  const { year, month, day } = getDatePartsInBusinessZone(dateInput)
+  const start = businessTimeToUtc(year, month, day, START_HOUR)
+  const end = businessTimeToUtc(year, month, day, END_HOUR)
+  const dates: Date[] = []
+  for (let time = +start; time < +end; time += SLOT_INTERVAL_MINUTES * 60_000) dates.push(new Date(time))
+  return dates
 }
 
 function slotKey(date: Date, resourceId: number) {
@@ -133,6 +143,7 @@ export async function ensureDaySlots(prisma: PrismaClient, dateInput: Date) {
   for (let index = 0; index < pendingCreates.length; index += 500) {
     await prisma.appointment.createMany({
       data: pendingCreates.slice(index, index + 500),
+      skipDuplicates: true,
     })
   }
 }

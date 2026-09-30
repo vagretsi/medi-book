@@ -51,3 +51,13 @@ test('skips gaps and finds the next continuous interval even with unsorted input
 test('only suggests strictly later starts', () => {
   assert.equal(findNextAvailableSlot(laterSlots[0].date, 15, laterSlots, [])?.id, 11)
 })
+
+test('continues to the next day when the selected day is full', () => {
+  const nextDay = Array.from({ length: 4 }, (_, i) => ({ id: 100 + i, date: `2026-10-01T08:${String(i * 15).padStart(2, '0')}:00+03:00`, duration: 15, status: 'FREE' }))
+  assert.equal(findNextAvailableSlot(interval(1, '21:45', 60).date, 60, nextDay, [])?.id, 100)
+})
+test('next-day proposal skips an occupied morning', () => {
+  const nextDay = Array.from({ length: 8 }, (_, i) => ({ id: 100 + i, date: new Date(Date.parse('2026-10-01T08:00:00+03:00') + i * 15 * 60_000), duration: 15, status: 'FREE' }))
+  const morning = { id: 50, date: '2026-10-01T08:00:00+03:00', duration: 60 }
+  assert.equal(findNextAvailableSlot(interval(1, '21:45', 60).date, 60, nextDay, [morning])?.id, 104)
+})

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
-import { ensureDaySlots, getDayBounds } from '@/lib/day-slots'
+import { ensureDaySlots, getDayBounds, getBusinessSlotDates } from '@/lib/day-slots'
 import { authOptions } from '@/lib/auth'
 import { findAppointmentConflict, findNextAvailableSlot } from '@/lib/appointment-conflicts'
 import { formatBusinessTime } from '@/lib/business-time'
@@ -195,13 +195,34 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
     if (!appointment) return { error: 'Το ραντεβού δεν βρέθηκε.' }
     async function conflictResult(error: string): Promise<BookingSaveResult> {
       if (mode !== 'book') return { error }
-      const { startOfDay, endOfDay } = getDayBounds(target!.date)
-      const [daySlots, allBookings] = await Promise.all([
-        tx.appointment.findMany({ where: { resourceId: target!.resourceId, date: { gte: startOfDay, lte: endOfDay } } }),
-        tx.appointment.findMany({ where: { resourceId: target!.resourceId, status: 'BOOKED', date: { lte: endOfDay } }, select: { id: true, date: true, duration: true } }),
+      const { startOfDay } = getDayBounds(target!.date)
+      // Bound the search to one year; no speculative slots are written while searching.
+      const searchEnd = getDayBounds(new Date(+startOfDay + 365 * 86_400_000)).endOfDay
+      const [existingSlots, allBookings] = await Promise.all([
+        tx.appointment.findMany({ where: { resourceId: target!.resourceId, date: { gte: startOfDay, lte: searchEnd } } }),
+        tx.appointment.findMany({ where: { resourceId: target!.resourceId, status: 'BOOKED', date: { lte: searchEnd } }, select: { id: true, date: true, duration: true } }),
       ])
-      const next = findNextAvailableSlot(target!.date, duration, daySlots, allBookings)
-      return { error, suggestion: next ? { ...next, date: next.date.toISOString() } : null, requestedDuration: duration }
+      const existingByTime = new Map(existingSlots.map(slot => [+slot.date, slot]))
+      let day = startOfDay
+      while (+day <= +searchEnd) {
+        const dates = getBusinessSlotDates(day)
+        const slots = dates.map((date, index) => existingByTime.get(+date) ?? {
+          id: -(index + 1), date, status: 'FREE', duration: 15, resourceId: target!.resourceId,
+          patientName: null, patientTel: null, notes: null,
+        })
+        const next = findNextAvailableSlot(target!.date, duration, slots, allBookings)
+        if (next) {
+          // Materialize only the selected day so the suggested time has a real booking ID.
+          await tx.appointment.createMany({
+            data: dates.map(date => ({ date, resourceId: target!.resourceId, status: 'FREE', duration: 15 })),
+            skipDuplicates: true,
+          })
+          const saved = await tx.appointment.findUniqueOrThrow({ where: { date_resourceId: { date: new Date(next.date), resourceId: target!.resourceId } } })
+          return { error, suggestion: { ...saved, date: saved.date.toISOString() }, requestedDuration: duration }
+        }
+        day = new Date(+getDayBounds(day).endOfDay + 1)
+      }
+      return { error, suggestion: null, requestedDuration: duration }
     }
     if (mode === 'book' && appointment.status !== 'FREE') {
       return conflictResult('Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.')

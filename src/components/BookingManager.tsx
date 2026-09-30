@@ -7,7 +7,7 @@ import type { AppointmentSlot } from '@/lib/calendar-types'
 import { formatBusinessTime } from '@/lib/business-time'
 import { getVisibleSlots } from '@/lib/visible-slots'
 
-export default function BookingManager({ appointments, onRefresh, canWrite, resourceName, query = '', filter = 'all' }: { appointments: AppointmentSlot[], onRefresh: () => Promise<void>, canWrite: boolean, resourceName: string, query?: string, filter?: string }) {
+export default function BookingManager({ appointments, onRefresh, canWrite, resourceName, query = '', filter = 'all' }: { appointments: AppointmentSlot[], onRefresh: (targetDate?: Date) => Promise<void>, canWrite: boolean, resourceName: string, query?: string, filter?: string }) {
   const [selectedApt, setSelectedApt] = useState<AppointmentSlot | null>(null)
   const [editingApt, setEditingApt] = useState<AppointmentSlot | null>(null)
   const normalized = query.trim().toLocaleLowerCase('el')

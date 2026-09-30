@@ -5,9 +5,9 @@ import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
 import { getVisibleSlots } from '@/lib/visible-slots'
 import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
-import { formatBusinessTime } from '@/lib/business-time'
+import { formatBusinessDate, formatBusinessTime } from '@/lib/business-time'
 
-export default function BookingModal({ apt: initialApt, resources = [], appointments = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], appointments?: AppointmentSlot[], resourceName?: string, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
+export default function BookingModal({ apt: initialApt, resources = [], appointments = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], appointments?: AppointmentSlot[], resourceName?: string, onClose: () => void, onRefresh: (targetDate?: Date) => Promise<void>, canWrite: boolean }) {
   const [suggestion, setSuggestion] = useState<AppointmentSlot | null>(null)
   const [suggestedDuration, setSuggestedDuration] = useState<number | null>(null)
   const [acceptedSlot, setAcceptedSlot] = useState<AppointmentSlot | null>(null)
@@ -43,7 +43,7 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
         setSuggestedDuration(result.requestedDuration ?? null)
         return
       }
-      await onRefresh()
+      await onRefresh(new Date(apt.date))
       onClose()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Δεν ήταν δυνατή η κράτηση.')
@@ -58,7 +58,7 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
             <div>
               <h3 className="font-bold text-lg leading-tight">Νέα Κράτηση</h3>
               <p className="text-blue-200 text-xs font-mono uppercase tracking-widest">
-                {apt ? `${calendarName ? `${calendarName} · ` : ''}${formatBusinessTime(apt.date)}` : 'Επίλεξε ημερολόγιο και ώρα'}
+                {apt ? `${calendarName ? `${calendarName} · ` : ''}${formatBusinessDate(apt.date)} · ${formatBusinessTime(apt.date)}` : 'Επίλεξε ημερολόγιο και ώρα'}
               </p>
             </div>
           </div>
@@ -68,9 +68,9 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
         <form onSubmit={event => { event.preventDefault(); void handleSubmit(new FormData(event.currentTarget)) }} className="p-8 space-y-5">
           {error && <div className="error-banner" role="alert"><p>{error}</p>
             {suggestion && suggestedDuration ? <div className="booking-suggestion">
-              <p>Επόμενη διαθέσιμη ώρα για {suggestedDuration}′: <strong>{formatBusinessTime(suggestion.date)}–{formatBusinessTime(new Date(+new Date(suggestion.date) + suggestedDuration * 60_000))}</strong></p>
-              <button type="button" className="primary-button" disabled={loading} onClick={() => { setAcceptedSlot(suggestion); setSlotId(String(suggestion.id)); setSuggestion(null); setSuggestedDuration(null); setError('') }}><span>Πατήστε εδώ για την πρώτη διαθέσιμη ώρα</span><strong>{formatBusinessTime(suggestion.date)} →</strong></button>
-            </div> : suggestedDuration && <p className="mt-2">Δεν υπάρχει επόμενη διαθέσιμη ώρα σήμερα για {suggestedDuration}′.</p>}
+              <p>Επόμενη διαθέσιμη ώρα για {suggestedDuration}′: <strong>{formatBusinessDate(suggestion.date)} · {formatBusinessTime(suggestion.date)}–{formatBusinessTime(new Date(+new Date(suggestion.date) + suggestedDuration * 60_000))}</strong></p>
+              <button type="button" className="primary-button" disabled={loading} onClick={() => { setAcceptedSlot(suggestion); setSlotId(String(suggestion.id)); setSuggestion(null); setSuggestedDuration(null); setError('') }}><span>Πατήστε εδώ για την πρώτη διαθέσιμη ώρα</span><strong>{formatBusinessDate(suggestion.date)} · {formatBusinessTime(suggestion.date)} →</strong></button>
+            </div> : suggestedDuration && <p className="mt-2">Δεν βρέθηκε διαθέσιμο διάστημα στις επόμενες 365 ημέρες για {suggestedDuration}′.</p>}
           </div>}
           <div className="space-y-4">
             {!initialApt && <div className="space-y-1.5">
@@ -84,7 +84,7 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
               <label htmlFor="booking-time" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ώρα</label>
               {timeOptions.length ? <select id="booking-time" required disabled={loading} value={slotId} onChange={event => { setSlotId(event.target.value); setSuggestion(null); setSuggestedDuration(null); setError('') }} className="w-full p-3 rounded-xl">
                 <option value="" disabled>Επίλεξε ώρα</option>
-                {timeOptions.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
+                {timeOptions.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessDate(slot.date)} · {formatBusinessTime(slot.date)}</option>)}
               </select> : <p role="status" className="muted">Δεν υπάρχουν διαθέσιμες ώρες σε αυτό το ημερολόγιο.</p>}
             </div>}
           </div>
