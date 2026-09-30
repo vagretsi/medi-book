@@ -75,3 +75,7 @@
   #schedule, #notes { scroll-margin-top: 190px; }
   .stat-value { margin-block: 10px 14px; }
 }
+
+.booking-suggestion { margin-top: 12px; padding-top: 12px; border-top: 1px solid #edcec5; }
+.booking-suggestion p { line-height: 1.7; }
+.error-banner .booking-suggestion button { margin: 10px 0 0; text-decoration: none; color: white; }

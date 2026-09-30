@@ -8,6 +8,9 @@ import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
 import { formatBusinessTime } from '@/lib/business-time'
 
 export default function BookingModal({ apt: initialApt, resources = [], appointments = [], resourceName, onClose, onRefresh, canWrite }: { apt?: AppointmentSlot, resources?: CalendarResource[], appointments?: AppointmentSlot[], resourceName?: string, onClose: () => void, onRefresh: () => Promise<void>, canWrite: boolean }) {
+  const [suggestion, setSuggestion] = useState<AppointmentSlot | null>(null)
+  const [suggestedDuration, setSuggestedDuration] = useState<number | null>(null)
+  const [acceptedSlot, setAcceptedSlot] = useState<AppointmentSlot | null>(null)
   const [resourceId, setResourceId] = useState('')
   const [slotId, setSlotId] = useState(initialApt ? String(initialApt.id) : '')
   const writableResources = resources.filter(resource => resource.canWrite)
@@ -16,7 +19,9 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
     ? appointments.filter(slot => slot.resourceId === initialApt.resourceId)
     : selectedResource?.appointments ?? []
   const freeSlots = getVisibleSlots(calendarSlots).filter(slot => slot.status === 'FREE').sort((a, b) => +new Date(a.date) - +new Date(b.date))
-  const apt = freeSlots.find(slot => String(slot.id) === slotId)
+  const timeOptions = acceptedSlot && !freeSlots.some(slot => slot.id === acceptedSlot.id)
+    ? [...freeSlots, acceptedSlot].sort((a, b) => +new Date(a.date) - +new Date(b.date)) : freeSlots
+  const apt = timeOptions.find(slot => String(slot.id) === slotId)
   const calendarName = resourceName ?? selectedResource?.name
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,9 +33,16 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
 
     setLoading(true)
     setError('')
+    setSuggestion(null)
+    setSuggestedDuration(null)
     try {
       const result = await bookAppointment(formData)
-      if (result.error) { setError(result.error); return }
+      if (result.error) {
+        setError(result.error)
+        setSuggestion(result.suggestion ?? null)
+        setSuggestedDuration(result.requestedDuration ?? null)
+        return
+      }
       await onRefresh()
       onClose()
     } catch (error) {
@@ -54,20 +66,25 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
         </div>
 
         <form onSubmit={event => { event.preventDefault(); void handleSubmit(new FormData(event.currentTarget)) }} className="p-8 space-y-5">
-          {error && <p className="error-banner" role="alert">{error}</p>}
+          {error && <div className="error-banner" role="alert"><p>{error}</p>
+            {suggestion && suggestedDuration ? <div className="booking-suggestion">
+              <p>Επόμενη διαθέσιμη ώρα για {suggestedDuration}′: <strong>{formatBusinessTime(suggestion.date)}–{formatBusinessTime(new Date(+new Date(suggestion.date) + suggestedDuration * 60_000))}</strong></p>
+              <button type="button" className="primary-button" disabled={loading} onClick={() => { setAcceptedSlot(suggestion); setSlotId(String(suggestion.id)); setSuggestion(null); setSuggestedDuration(null); setError('') }}>Επιλογή {formatBusinessTime(suggestion.date)}</button>
+            </div> : suggestedDuration && <p className="mt-2">Δεν υπάρχει επόμενη διαθέσιμη ώρα σήμερα για {suggestedDuration}′.</p>}
+          </div>}
           <div className="space-y-4">
             {!initialApt && <div className="space-y-1.5">
               <label htmlFor="booking-resource" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ημερολόγιο</label>
-              <select id="booking-resource" required disabled={loading} value={resourceId} onChange={event => { setResourceId(event.target.value); setSlotId(''); setError('') }} className="w-full p-3 rounded-xl">
+              <select id="booking-resource" required disabled={loading} value={resourceId} onChange={event => { setResourceId(event.target.value); setSlotId(''); setAcceptedSlot(null); setSuggestion(null); setSuggestedDuration(null); setError('') }} className="w-full p-3 rounded-xl">
                 <option value="" disabled>Ιατρείο ή Laser;</option>
                 {writableResources.map(resource => <option key={resource.id} value={resource.id}>{resource.name}</option>)}
               </select>
             </div>}
             {(initialApt || selectedResource) && <div className="space-y-1.5">
               <label htmlFor="booking-time" className="text-[10px] font-black text-slate-500 uppercase ml-1">Ώρα</label>
-              {freeSlots.length ? <select id="booking-time" required disabled={loading} value={slotId} onChange={event => { setSlotId(event.target.value); setError('') }} className="w-full p-3 rounded-xl">
+              {timeOptions.length ? <select id="booking-time" required disabled={loading} value={slotId} onChange={event => { setSlotId(event.target.value); setSuggestion(null); setSuggestedDuration(null); setError('') }} className="w-full p-3 rounded-xl">
                 <option value="" disabled>Επίλεξε ώρα</option>
-                {freeSlots.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
+                {timeOptions.map(slot => <option key={slot.id} value={slot.id}>{formatBusinessTime(slot.date)}</option>)}
               </select> : <p role="status" className="muted">Δεν υπάρχουν διαθέσιμες ώρες σε αυτό το ημερολόγιο.</p>}
             </div>}
           </div>
@@ -86,7 +103,7 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
             </div>
             <div className="space-y-1.5">
                <label className="text-[10px] font-black text-slate-500 uppercase ml-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Διάρκεια</label>
-               <select aria-label="Διάρκεια" name="duration" defaultValue="30" disabled={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`}>
+               <select aria-label="Διάρκεια" name="duration" defaultValue="30" onChange={() => { setSuggestion(null); setSuggestedDuration(null); setError('') }} disabled={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`}>
                   <option value="15">15 Λεπτά</option>
                   <option value="30">30 Λεπτά</option>
                   <option value="45">45 Λεπτά</option>

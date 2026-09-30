@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { findAppointmentConflict } from '../src/lib/appointment-conflicts'
+import { findAppointmentConflict, findNextAvailableSlot } from '../src/lib/appointment-conflicts'
 import { getVisibleSlots } from '../src/lib/visible-slots'
 
 const interval = (id: number, time: string, duration: number) => ({ id, date: `2026-09-30T${time}:00+03:00`, duration })
@@ -29,4 +29,25 @@ test('existing overlapping bookings stay visible; covered free slots are hidden'
   const slot = (id: number, time: string, duration: number, status: string) => ({ ...interval(id, time, duration), status, resourceId: 1, patientName: null, patientTel: null, notes: null })
   const slots = [slot(1, '08:45', 60, 'BOOKED'), slot(2, '09:00', 15, 'FREE'), slot(3, '09:15', 30, 'BOOKED'), slot(4, '09:45', 15, 'FREE')]
   assert.deepEqual(getVisibleSlots(slots).map(s => s.id), [1, 3, 4])
+})
+
+const freeSlot = (id: number, time: string) => ({ ...interval(id, time, 15), status: 'FREE' })
+const laterSlots = [freeSlot(10, '09:45'), freeSlot(11, '10:00'), freeSlot(12, '10:15'), freeSlot(13, '10:30'), freeSlot(14, '10:45'), freeSlot(15, '11:00')]
+
+test('suggests the earliest later slot fitting the entire requested hour', () => {
+  assert.equal(findNextAvailableSlot(interval(1, '08:45', 60).date, 60, laterSlots, [existing])?.id, 10)
+})
+test('skips free-looking slots covered by another long booking', () => {
+  assert.equal(findNextAvailableSlot(interval(1, '08:45', 60).date, 30, laterSlots, [interval(2, '09:30', 60)])?.id, 13)
+})
+test('does not suggest a gap shorter than the duration or cross closing time', () => {
+  assert.equal(findNextAvailableSlot(interval(1, '08:45', 60).date, 60, laterSlots.slice(0, 2), []), undefined)
+  assert.equal(findNextAvailableSlot(interval(1, '21:00', 60).date, 60, [freeSlot(9, '21:45')], []), undefined)
+})
+test('skips gaps and finds the next continuous interval even with unsorted input', () => {
+  const slots = [laterSlots[5], laterSlots[3], laterSlots[0], laterSlots[4]]
+  assert.equal(findNextAvailableSlot(interval(1, '09:00', 45).date, 45, slots, [])?.id, 13)
+})
+test('only suggests strictly later starts', () => {
+  assert.equal(findNextAvailableSlot(laterSlots[0].date, 15, laterSlots, [])?.id, 11)
 })

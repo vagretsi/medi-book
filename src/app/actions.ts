@@ -7,9 +7,9 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { ensureDaySlots, getDayBounds } from '@/lib/day-slots'
 import { authOptions } from '@/lib/auth'
-import { findAppointmentConflict } from '@/lib/appointment-conflicts'
+import { findAppointmentConflict, findNextAvailableSlot } from '@/lib/appointment-conflicts'
 import { formatBusinessTime } from '@/lib/business-time'
-import type { CalendarResource } from '@/lib/calendar-types'
+import type { CalendarResource, AppointmentSlot } from '@/lib/calendar-types'
 
 const prisma = new PrismaClient()
 
@@ -173,7 +173,9 @@ export async function logout() {
 }
 
 // Serialize writes per calendar so simultaneous requests cannot double-book it.
-async function saveAppointment(formData: FormData, mode: 'book' | 'edit') {
+type BookingSaveResult = { error: string | null; suggestion?: AppointmentSlot | null; requestedDuration?: number }
+
+async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promise<BookingSaveResult> {
   const aptId = Number(formData.get('aptId'))
   const duration = Number(formData.get('duration'))
   if (!Number.isInteger(aptId) || aptId <= 0) return { error: 'Μη έγκυρο ραντεβού.' }
@@ -191,8 +193,18 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit') {
     await tx.$queryRaw`SELECT "id" FROM "Resource" WHERE "id" = ${target.resourceId} FOR UPDATE`
     const appointment = await tx.appointment.findUnique({ where: { id: aptId } })
     if (!appointment) return { error: 'Το ραντεβού δεν βρέθηκε.' }
+    async function conflictResult(error: string): Promise<BookingSaveResult> {
+      if (mode !== 'book') return { error }
+      const { startOfDay, endOfDay } = getDayBounds(target!.date)
+      const [daySlots, allBookings] = await Promise.all([
+        tx.appointment.findMany({ where: { resourceId: target!.resourceId, date: { gte: startOfDay, lte: endOfDay } } }),
+        tx.appointment.findMany({ where: { resourceId: target!.resourceId, status: 'BOOKED', date: { lte: endOfDay } }, select: { id: true, date: true, duration: true } }),
+      ])
+      const next = findNextAvailableSlot(target!.date, duration, daySlots, allBookings)
+      return { error, suggestion: next ? { ...next, date: next.date.toISOString() } : null, requestedDuration: duration }
+    }
     if (mode === 'book' && appointment.status !== 'FREE') {
-      return { error: 'Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.' }
+      return conflictResult('Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.')
     }
     if (mode === 'edit' && appointment.status !== 'BOOKED') {
       return { error: 'Το ραντεβού έχει ακυρωθεί. Ανανέωσε το πρόγραμμα.' }
@@ -207,7 +219,7 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit') {
     })
     const conflict = findAppointmentConflict({ ...appointment, duration }, bookings)
     if (conflict) {
-      return { error: `Υπάρχει ήδη ραντεβού στις ${formatBusinessTime(conflict.date)}. Επίλεξε μικρότερη διάρκεια ή άλλη ώρα.` }
+      return conflictResult(`Υπάρχει ήδη ραντεβού στις ${formatBusinessTime(conflict.date)}. Επίλεξε μικρότερη διάρκεια ή άλλη ώρα.`)
     }
     await tx.appointment.update({
       where: { id: aptId },
