@@ -2,6 +2,7 @@ export type AppointmentSlot = {
   id: number
   date: Date | string
   status: string
+  patientId?: number | null
   patientName: string | null
   patientTel: string | null
   notes: string | null

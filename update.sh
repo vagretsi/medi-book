@@ -30,15 +30,23 @@ else
   pm2 describe "$PM2_APP" >/dev/null || fail 'The specified PM2 app does not exist.'
 fi
 
-printf '\n[1/5] Pulling latest main...\n'
+printf '\n[1/7] Pulling latest main...\n'
 git pull --ff-only origin main
-printf '\n[2/5] Installing locked dependencies...\n'
+printf '\n[2/7] Installing locked dependencies...\n'
 npm ci --include=dev
-printf '\n[3/5] Generating Prisma client (no database changes)...\n'
+printf '\n[3/7] Generating Prisma client...\n'
 ./node_modules/.bin/prisma generate
-printf '\n[4/5] Building production app...\n'
+printf '\n[4/7] Building production app...\n'
 npm run build
-printf '\n[5/5] Restarting application...\n'
+printf '\n[5/7] Stopping application for the database upgrade...\n'
+if [[ -n "${SYSTEMD_SERVICE:-}" ]]; then
+  if [[ "$EUID" -eq 0 ]]; then systemctl stop "$SYSTEMD_SERVICE"; else sudo systemctl stop "$SYSTEMD_SERVICE"; fi
+else
+  pm2 stop "$PM2_APP"
+fi
+printf '\n[6/7] Upgrading patient schema and linking history...\n'
+npm run db:upgrade
+printf '\n[7/7] Restarting application...\n'
 if [[ -n "${SYSTEMD_SERVICE:-}" ]]; then
   if [[ "$EUID" -eq 0 ]]; then
     systemctl restart "$SYSTEMD_SERVICE"

@@ -8,46 +8,51 @@ datasource db {
 }
 
 model Resource {
-  id          Int           @id @default(autoincrement())
-  name        String        // π.χ. "Dr. Vasilis" ή "Alexandrite Laser"
-  type        String        // "MEDICAL" ή "AESTHETIC"
-  groupId     Int?
+  id           Int              @id @default(autoincrement())
+  name         String // π.χ. "Dr. Vasilis" ή "Alexandrite Laser"
+  type         String // "MEDICAL" ή "AESTHETIC"
+  groupId      Int?
   appointments Appointment[]
-  accesses    ResourceAccess[]
-  group       CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  visits       PatientVisit[]
+  accesses     ResourceAccess[]
+  group        CalendarGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([groupId])
 }
 
 model Appointment {
-  id          Int      @id @default(autoincrement())
-  date        DateTime // Ημερομηνία & Ώρα
-  status      String   @default("FREE") // "FREE", "BOOKED"
-  
+  id     Int      @id @default(autoincrement())
+  date   DateTime // Ημερομηνία & Ώρα
+  status String   @default("FREE") // "FREE", "BOOKED"
+
   // Στοιχεία Πελάτη
+  patientId   Int?
+  patient     Patient?      @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  visit       PatientVisit?
   patientName String?
   patientTel  String?
   notes       String?
 
   // Default Duration
-  duration    Int      @default(30)  
+  duration Int @default(30)
 
   // Σύνδεση με Πόρο
-  resourceId  Int
-  resource    Resource @relation(fields: [resourceId], references: [id])
-  
-  createdAt   DateTime @default(now())
+  resourceId Int
+  resource   Resource @relation(fields: [resourceId], references: [id])
 
-  // Δεν γίνεται να κλείσεις τον ίδιο πόρο την ίδια ώρα
+  createdAt DateTime @default(now())
+
   @@unique([date, resourceId])
+  // Δεν γίνεται να κλείσεις τον ίδιο πόρο την ίδια ώρα
+  @@index([patientId])
 }
 
 // Daily notes
 model DayNote {
-  id      Int      @id @default(autoincrement())
+  id      Int            @id @default(autoincrement())
   date    DateTime
   groupId Int?
-  content String   @db.Text // Μεγάλο κείμενο
+  content String         @db.Text // Μεγάλο κείμενο
   group   CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([date, groupId])
@@ -57,24 +62,24 @@ model DayNote {
 //user
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String   // Θα αποθηκεύεται κρυπτογραφημένο (Hashed)
-  role      String   @default("USER") // "ADMIN" ή "USER"
-  groupId   Int?
-  canWrite  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  group     CalendarGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  id               Int              @id @default(autoincrement())
+  username         String           @unique
+  password         String // Θα αποθηκεύεται κρυπτογραφημένο (Hashed)
+  role             String           @default("USER") // "ADMIN" ή "USER"
+  groupId          Int?
+  canWrite         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  group            CalendarGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
   resourceAccesses ResourceAccess[]
 
   @@index([groupId])
 }
 
 model CalendarGroup {
-  id        Int      @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
+  slug      String     @unique
+  createdAt DateTime   @default(now())
   users     User[]
   resources Resource[]
   dayNotes  DayNote[]
@@ -92,4 +97,68 @@ model ResourceAccess {
 
   @@unique([userId, resourceId])
   @@index([resourceId])
+}
+
+// A profile is shared only inside its calendar group (or its ungrouped resource).
+model Patient {
+  id              Int            @id @default(autoincrement())
+  scopeKey        String
+  fullName        String
+  phone           String
+  normalizedName  String
+  normalizedPhone String
+  email           String?
+  dateOfBirth     DateTime?      @db.Date
+  notes           String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  appointments    Appointment[]
+  visits          PatientVisit[]
+
+  @@unique([scopeKey, normalizedName, normalizedPhone])
+  @@index([scopeKey, normalizedPhone])
+}
+
+// Stable history record; independent of reusable calendar slots.
+model PatientVisit {
+  id            Int              @id @default(autoincrement())
+  patientId     Int
+  patient       Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  resourceId    Int
+  resource      Resource         @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  appointmentId Int?             @unique
+  appointment   Appointment?     @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  date          DateTime
+  duration      Int
+  status        String           @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, NO_SHOW
+  patientName   String // Historical snapshot; profile changes do not rewrite it.
+  patientTel    String
+  notes         String?          @db.Text
+  serviceName   String?
+  chargedAmount Decimal?         @db.Decimal(10, 2) // null means not recorded, never assumed zero
+  currency      String           @default("EUR") @db.VarChar(3)
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  payments      PatientPayment[]
+
+  @@index([patientId, date])
+  @@index([resourceId, date])
+}
+
+// Multiple payments support deposits / installments; amounts use exact decimals.
+model PatientPayment {
+  id        Int          @id @default(autoincrement())
+  visitId   Int
+  visit     PatientVisit @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  amount    Decimal      @db.Decimal(10, 2)
+  currency  String       @default("EUR") @db.VarChar(3)
+  paidAt    DateTime     @default(now())
+  method    String? // CASH, CARD, TRANSFER, OTHER; supplied explicitly when recorded
+  reference String?
+  notes     String?      @db.Text
+  createdAt DateTime     @default(now())
+
+  @@index([visitId, paidAt])
 }

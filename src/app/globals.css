@@ -106,3 +106,48 @@
 .appointment-time .appointment-end { margin-top: 4px; line-height: 1.5; }
 @media (min-width: 1600px) { .booking-list { --quarter-hour-height: 80px; } }
 @media (max-width: 650px) { .booking-list { --quarter-hour-height: 73px; } }
+
+/* Patient directory and lightweight profile history. */
+.patient-nav { width: 100%; border: 0; background: transparent; text-align: left; }
+.patient-fields { display: grid; gap: 14px; }
+.patient-field { display: grid; gap: 7px; }
+.patient-field > span { font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.patient-field input { width: 100%; padding: 12px; border-radius: 12px; }
+.patient-selected { font-size: 11px; color: #397a59; }
+.patient-suggestions { border: 1px solid #dce8df; border-radius: 10px; overflow: hidden; max-height: 220px; overflow-y: auto; }
+.patient-suggestions:empty { display: none; }
+.patient-suggestions > button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid #e8eee8; background: #f8fbf6; color: #355841; text-align: left; }
+.patient-suggestions > button:hover, .patient-suggestions > button:focus-visible { background: #e7f2e6; }
+.patient-suggestions strong { font-size: 12px; font-weight: 600; }
+.patient-suggestions span, .patient-suggestions p { font-size: 11px; color: #6c806e; }
+.patient-suggestions p { padding: 12px; line-height: 1.8; }
+.patient-profile-link { border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+.patient-browser-header { display: flex; gap: 10px; align-items: center; padding: 20px; border-bottom: 1px solid #e4ece1; background: #f5f9f2; }
+.patient-browser-header h2 { font-size: 18px; }
+.patient-browser-header > button:last-child { margin-left: auto; }
+.patient-directory, .patient-profile { padding: 22px; }
+.patient-directory > .search-field { margin-bottom: 16px; }
+.patient-directory .search-field input { width: 100%; border: 0 !important; }
+.patient-directory .patient-suggestions { max-height: 55svh; }
+.patient-loading { display: flex; align-items: center; gap: 8px; padding: 24px; color: #71866e; font-size: 12px; }
+.patient-profile-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.patient-profile-heading h2 { font-size: 20px; margin-bottom: 6px; overflow-wrap: anywhere; }
+.patient-profile-heading a { color: #658268; font-size: 13px; }
+.patient-profile-avatar { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0; background: #e9f2e5; color: #63805b; }
+.patient-profile h3 { font-size: 13px; font-weight: 600; margin: 24px 0 12px; }
+.patient-visit { padding: 15px; margin-bottom: 12px; border: 1px solid #e3eade; border-radius: 10px; }
+.patient-visit-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.patient-visit-heading strong { font-size: 12px; }
+.patient-visit-heading span { font-size: 9px; border-radius: 5px; padding: 4px 6px; background: #eff3eb; color: #71846b; }
+.patient-visit p { margin-top: 8px; font-size: 11px; line-height: 1.7; }
+.profile-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.visit-finances { margin-top: 10px; border-top: 1px solid #e8eee4; color: #829179; }
+.patient-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; font-size: 11px; }
+.patient-pagination button { padding: 9px 12px; border-radius: 7px; border: 1px solid #dfe8d9; background: #f7faf4; }
+@media (max-width: 950px) and (min-width: 651px) { .patient-nav { padding: 14px 0; font-size: 0; } }
+@media (max-width: 650px) { .patient-nav { width: auto; padding: 9px; font-size: 0; } }
+
+@media (max-width: 400px) {
+  .sidebar nav { gap: 4px; }
+  .sidebar .brand > span:last-child { font-size: 18px; }
+}

@@ -9,7 +9,9 @@
     "lint": "eslint",
     "seed:demo-access": "node prisma/seed-demo-access.js",
     "fill:leave-to-august": "node prisma/fill-leave-to-august.js",
-    "inspect:leave-source": "LEAVE_INSPECT=1 node prisma/fill-leave-to-august.js"
+    "inspect:leave-source": "LEAVE_INSPECT=1 node prisma/fill-leave-to-august.js",
+    "db:upgrade": "ts-node --compiler-options '{\"module\":\"CommonJS\",\"moduleResolution\":\"node\"}' prisma/upgrade-patients.ts",
+    "test": "bash scripts/test.sh"
   },
   "dependencies": {
     "@prisma/client": "^5.10.2",

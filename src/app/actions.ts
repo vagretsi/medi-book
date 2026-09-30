@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { ensureDaySlots, getDayBounds, getBusinessSlotDates } from '@/lib/day-slots'
 import { authOptions } from '@/lib/auth'
+import { resourceVisibility } from '@/lib/resource-access'
+import { normalizePatientName, normalizePatientPhone, patientScope } from '@/lib/patient-identity'
 import { APPOINTMENT_DURATIONS, getAppointmentTimeError } from '@/lib/appointment-duration'
 import { findAppointmentConflict, findNextAvailableSlot } from '@/lib/appointment-conflicts'
 import { formatBusinessTime } from '@/lib/business-time'
@@ -116,6 +118,55 @@ async function requireAppointmentWriteAccess(aptId: number) {
   }
 }
 
+export async function searchPatients(query: string, resourceId?: number) {
+  const user = await requireCurrentUser()
+  const visibility = resourceVisibility(user)
+  let scopeKey: string | undefined
+  if (resourceId !== undefined) {
+    if (!Number.isInteger(resourceId)) return []
+    const resource = await prisma.resource.findFirst({ where: { AND: [{ id: resourceId }, visibility] } })
+    if (!resource) return []
+    scopeKey = patientScope(resource)
+  }
+  const name = normalizePatientName(query).slice(0, 120)
+  const phone = normalizePatientPhone(query).slice(0, 30)
+  if (name.length < 2 && resourceId !== undefined) return []
+  return prisma.patient.findMany({
+    where: {
+      scopeKey,
+      visits: { some: { resource: visibility } },
+      ...(name ? { OR: [{ normalizedName: { contains: name } }, ...(phone.length >= 2 ? [{ normalizedPhone: { contains: phone } }] : [])] } : {}),
+    },
+    select: { id: true, fullName: true, phone: true },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], take: 20,
+  })
+}
+
+export async function getPatientProfile(patientId: number, page = 0) {
+  const user = await requireCurrentUser()
+  if (!Number.isInteger(patientId) || !Number.isInteger(page) || page < 0) return null
+  const visibility = resourceVisibility(user)
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, visits: { some: { resource: visibility } } },
+  })
+  if (!patient) return null
+  const visits = await prisma.patientVisit.findMany({
+    where: { patientId, resource: visibility },
+    orderBy: [{ date: 'desc' }, { id: 'desc' }], skip: page * 30, take: 31,
+    include: { resource: { select: { name: true } }, payments: { orderBy: { paidAt: 'asc' } } },
+  })
+  return {
+    patient: { id: patient.id, fullName: patient.fullName, phone: patient.phone, email: patient.email, dateOfBirth: patient.dateOfBirth?.toISOString() ?? null, notes: patient.notes },
+    hasMore: visits.length > 30,
+    visits: visits.slice(0, 30).map(visit => ({
+      id: visit.id, date: visit.date.toISOString(), duration: visit.duration, status: visit.status,
+      resourceName: visit.resource.name, notes: visit.notes, serviceName: visit.serviceName,
+      chargedAmount: visit.chargedAmount?.toString() ?? null, currency: visit.currency,
+      payments: visit.payments.map(payment => ({ id: payment.id, amount: payment.amount.toString(), currency: payment.currency, paidAt: payment.paidAt.toISOString(), method: payment.method })),
+    })),
+  }
+}
+
 // 1. FETCH DATA (Για το Refresh)
 export async function getDayAppointments(dateStr: string): Promise<CalendarResource[]> {
   const user = await requireCurrentUser()
@@ -125,17 +176,7 @@ export async function getDayAppointments(dateStr: string): Promise<CalendarResou
   await ensureDaySlots(prisma, selectedDate)
 
   const resources = await prisma.resource.findMany({
-    where: isSuperAdmin(user)
-      ? {}
-      : user.groupId
-        ? { groupId: user.groupId }
-        : user.role === 'ADMIN'
-          ? { groupId: null }
-      : {
-          accesses: {
-            some: { userId: user.id },
-          },
-        },
+    where: resourceVisibility(user),
     orderBy: { id: 'asc' },
     include: {
       appointments: {
@@ -184,6 +225,7 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
   const patientName = String(formData.get('patientName') ?? '').trim()
   const patientTel = String(formData.get('patientTel') ?? '').trim()
   if (!patientName || !patientTel) return { error: 'Συμπλήρωσε όνομα και τηλέφωνο.' }
+  if (patientName.length > 200 || patientTel.length > 40) return { error: 'Το όνομα ή το τηλέφωνο είναι υπερβολικά μεγάλο.' }
 
   await requireAppointmentWriteAccess(aptId)
   const result = await prisma.$transaction(async tx => {
@@ -260,14 +302,44 @@ async function saveAppointment(formData: FormData, mode: 'book' | 'edit'): Promi
     if (conflict) {
       return conflictResult(`Υπάρχει ήδη ραντεβού στις ${formatBusinessTime(conflict.date)}. Επίλεξε μικρότερη διάρκεια ή άλλη ώρα.`)
     }
+    const resource = await tx.resource.findUniqueOrThrow({ where: { id: appointment.resourceId } })
+    const scopeKey = patientScope(resource)
+    const normalizedName = normalizePatientName(patientName)
+    const normalizedPhone = normalizePatientPhone(patientTel)
+    if (!normalizedPhone) return { error: 'Συμπλήρωσε έγκυρο τηλέφωνο.' }
+    const visit = await tx.patientVisit.findUnique({ where: { appointmentId: aptId }, include: { _count: { select: { payments: true } } } })
+    if (visit && (visit.chargedAmount !== null || visit._count.payments > 0) &&
+      (normalizePatientName(visit.patientName) !== normalizedName || normalizePatientPhone(visit.patientTel) !== normalizedPhone)) {
+      return { error: 'Δεν μπορεί να αλλάξει ο ασθενής σε επίσκεψη με καταγεγραμμένα οικονομικά στοιχεία.' }
+    }
+    const selectedPatientId = formData.get('patientId')
+    let patient
+    if (selectedPatientId) {
+      const id = Number(selectedPatientId)
+      if (!Number.isInteger(id)) return { error: 'Μη έγκυρος ασθενής.' }
+      patient = await tx.patient.findFirst({ where: { id, scopeKey, normalizedName, normalizedPhone } })
+      if (!patient) return { error: 'Τα στοιχεία του ασθενούς άλλαξαν. Επίλεξέ τον ξανά.' }
+    } else {
+      patient = await tx.patient.upsert({
+        where: { scopeKey_normalizedName_normalizedPhone: { scopeKey, normalizedName, normalizedPhone } },
+        create: { scopeKey, fullName: patientName, phone: patientTel, normalizedName, normalizedPhone },
+        update: {},
+      })
+    }
+    const visitData = {
+      patientId: patient.id, resourceId: appointment.resourceId, appointmentId: destination.id,
+      date: destination.date, duration, patientName, patientTel, notes: String(formData.get('notes') ?? ''),
+    }
+    if (visit) await tx.patientVisit.update({ where: { id: visit.id }, data: visitData })
+    else await tx.patientVisit.create({ data: visitData })
     await tx.appointment.update({
       where: { id: destination.id },
-      data: { status: 'BOOKED', patientName, patientTel, notes: String(formData.get('notes') ?? ''), duration },
+      data: { status: 'BOOKED', patientId: patient.id, patientName, patientTel, notes: String(formData.get('notes') ?? ''), duration },
     })
     if (destination.id !== aptId) {
       await tx.appointment.update({
         where: { id: aptId },
-        data: { status: 'FREE', patientName: null, patientTel: null, notes: null, duration: 15 },
+        data: { status: 'FREE', patientId: null, patientName: null, patientTel: null, notes: null, duration: 15 },
       })
     }
     return { error: null }
@@ -291,17 +363,17 @@ export async function cancelAppointment(formData: FormData) {
 
   await requireAppointmentWriteAccess(aptId)
 
-  await prisma.appointment.update({
-    where: { id: aptId },
-    data: {
-      status: 'FREE',
-      patientName: null,
-      patientTel: null,
-      notes: null,
-      // ΣΗΜΑΝΤΙΚΟ: Το επαναφέρουμε σε 15 για να ταιριάζει με το Grid του timeline
-      // Αν ο χρήστης θέλει 30, θα επιλέξει "30 λεπτά" όταν πατήσει "Κράτηση"
-      duration: 15 
-    }
+  await prisma.$transaction(async tx => {
+    const target = await tx.appointment.findUniqueOrThrow({ where: { id: aptId } })
+    await tx.$queryRaw`SELECT "id" FROM "Resource" WHERE "id" = ${target.resourceId} FOR UPDATE`
+    await tx.patientVisit.updateMany({
+      where: { appointmentId: aptId },
+      data: { status: 'CANCELLED', cancelledAt: new Date(), appointmentId: null },
+    })
+    await tx.appointment.update({
+      where: { id: aptId },
+      data: { status: 'FREE', patientId: null, patientName: null, patientTel: null, notes: null, duration: 15 },
+    })
   })
   revalidatePath('/')
 }

@@ -2,9 +2,10 @@
 import { useState, useCallback } from 'react'
 import { useCalendarDaySlots } from './useCalendarDaySlots'
 import { getAppointmentTimeError } from '@/lib/appointment-duration'
+import PatientFields from './PatientFields'
 import ModalFrame from './ModalFrame'
 import { updateAppointment, cancelAppointment } from '@/app/actions'
-import { X, User, Phone, FileText, Trash2, Save, Clock } from 'lucide-react'
+import { X, FileText, Trash2, Save, Clock } from 'lucide-react'
 import { businessDateKey, formatBusinessTime } from '@/lib/business-time'
 import { getVisibleSlots } from '@/lib/visible-slots'
 import type { AppointmentSlot } from '@/lib/calendar-types'
@@ -83,17 +84,9 @@ export default function EditModal({ apt, appointments, onClose, onRefresh }: { a
               </select>
             </div>
             
+            <PatientFields key={apt.id} resourceId={apt.resourceId} initialName={apt.patientName ?? ''} initialPhone={apt.patientTel ?? ''} initialPatientId={apt.patientId} disabled={loading} />
+          <div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><User className="w-3 h-3"/> Όνομα Ασθενή</label>
-              <input aria-label="Όνομα ασθενή" name="patientName" defaultValue={apt.patientName ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Phone className="w-3 h-3"/> Τηλέφωνο</label>
-                <input type="tel" aria-label="Τηλέφωνο" name="patientTel" defaultValue={apt.patientTel ?? ''} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none" required />
-              </div>
-              <div className="space-y-2">
                  <label className="text-[10px] font-black text-blue-400 uppercase flex items-center gap-2"><Clock className="w-3 h-3"/> Διάρκεια</label>
                  <select aria-label="Διάρκεια" name="duration" defaultValue={apt.duration || 30} className="w-full bg-slate-950 border border-slate-700 text-white p-3 rounded-xl focus:border-blue-500 outline-none">
                     <option value="15">15 Λεπτά</option>

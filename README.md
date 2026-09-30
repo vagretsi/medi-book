@@ -9,6 +9,7 @@ Medical appointment scheduling system for clinics and aesthetic centers. Built w
 - **Daily appointment grid** — Visual slot-based calendar per resource (doctor/equipment)
 - **Booking & editing** — Create, edit, and cancel appointments with patient info
 - **Multi-resource dashboard** — 3-column grid showing all resources side by side
+- **Patient profiles** — Name/phone suggestions, appointment history and financial schema foundations
 - **Daily notes** — Auto-saving freeform notes per day (debounced, 1 second)
 - **Date navigation** — Browse past/future days, jump via calendar picker
 - **Authentication** — NextAuth with credentials provider, JWT sessions
@@ -202,6 +203,7 @@ npm run dev      # Start development server
 npm run build    # Build for production
 npm run start    # Start production server
 npm run lint     # Run ESLint
+npm test         # Run booking and patient identity/access tests
 ```
 
 ---
@@ -233,10 +235,13 @@ bash update.sh
 The script targets the existing PM2 app `medibook`, fast-forward pulls `main`,
 installs locked dependencies (including build tools),
 generates the Prisma client, builds Next.js, then restarts the existing app.
-It stops on errors or local changes. It preserves `.env` and does not run database
-migrations, schema pushes, or seed scripts. Run it during a quiet period: the
+It stops on errors or local changes. It preserves `.env`. After building, it stops the app, applies the versioned additive
+patient migration and backfills profiles/history, then restarts. It never runs a
+schema reset or seed script. The migration has an atomic checksum ledger and the
+backfill is resumable. If the upgrade fails, the app stays stopped; fix the error
+and rerun `bash update.sh`. Run it during a quiet period: the
 production build is updated in place; this is not an atomic or zero-downtime deploy.
-A build failure prevents the restart but does not roll back files or dependencies.
+A build failure prevents the database upgrade and restart but does not roll back files or dependencies.
 
 If the PM2 process is renamed, specify its existing process name:
 
@@ -252,3 +257,41 @@ SYSTEMD_SERVICE=your-service.service bash update.sh
 
 The systemd mode may ask for sudo credentials. A successful restart is not an
 HTTP health check; verify the deployed site after the script finishes.
+
+
+## Patient profiles and history
+
+- `Patient`: name, phone, normalized identity, clinic scope, optional email,
+  date of birth and profile notes. Exact normalized name **and** phone are used
+  together; a shared family phone alone never merges different names. Name/phone
+  corrections that no longer match are treated as a different identity; there is
+  no automatic fuzzy merge or global cross-clinic patient directory.
+- `PatientVisit`: stable history linked to a patient and resource, with a nullable
+  unique link to the reusable calendar slot. Rescheduling moves the link and
+  updates the same visit. Cancellation preserves the visit and releases the slot.
+  Statuses support scheduled, completed, cancelled and no-show visits. Old bookings
+  remain scheduled: elapsed time is not evidence that the patient attended.
+- Finance foundation: a nullable decimal charge and currency on each visit, plus
+  separate decimal payment rows with payment date, method, reference and notes.
+  Multiple payments support deposits/installments. Unknown charges are `NULL`,
+  and no payment records are inferred. Payment entry, refunds and receipt handling
+  are future features; the current profile displays recorded financial data.
+- Search and history use the calendar's existing access rules. A group shares
+  patient identities; ungrouped resources get separate identity scopes. Visit
+  history is additionally filtered to the resources the signed-in user can see.
+- The first deployment links existing `BOOKED` appointments with complete name
+  and phone to profiles and visits. Incomplete records are kept unchanged and
+  counted in the upgrade output. Previously erased cancellations cannot be
+  reconstructed. No existing appointment date, duration, note or status is changed.
+
+For this first schema upgrade, download the updated script before executing it:
+
+```bash
+git pull --ff-only origin main && bash update.sh
+```
+
+`npm run db:upgrade` applies `prisma/upgrades/001-patient-profiles.sql` once using
+`_MediBookUpgrade` and then resumes any missing history links. This repository has
+an existing database without Prisma migration history, so it uses an explicit
+additive upgrade rather than pretending the database is empty or baselining it
+blindly. Do not modify a migration after it has been applied.

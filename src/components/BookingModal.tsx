@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react'
 import { useCalendarDaySlots } from './useCalendarDaySlots'
 import { getAppointmentTimeError } from '@/lib/appointment-duration'
+import PatientFields from './PatientFields'
 import ModalFrame from './ModalFrame'
 import { bookAppointment } from '@/app/actions'
 import { X, CalendarCheck, Clock } from 'lucide-react'
@@ -104,16 +105,8 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
           {apt && <input type="hidden" name="aptId" value={apt.id} />}
           <fieldset disabled={!apt || loading} className="space-y-5 disabled:opacity-50">
           
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Όνομα Ασθενή</label>
-            <input aria-label="Όνομα ασθενή" name="patientName" required readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="Ονοματεπώνυμο..." />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-               <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Τηλέφωνο</label>
-               <input type="tel" aria-label="Τηλέφωνο" name="patientTel" required readOnly={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`} placeholder="69..." />
-            </div>
+          <PatientFields resourceId={initialApt?.resourceId ?? selectedResource?.id} disabled={!canWrite || loading} />
+          <div>
             <div className="space-y-1.5">
                <label className="text-[10px] font-black text-slate-500 uppercase ml-1 flex items-center gap-1"><Clock className="w-3 h-3"/> Διάρκεια</label>
                <select aria-label="Διάρκεια" name="duration" defaultValue="30" onChange={() => { setSuggestion(null); setSuggestedDuration(null); setError('') }} disabled={!canWrite} className={`w-full bg-slate-800 border-slate-700 text-white p-3 rounded-xl outline-none transition-all ${canWrite ? 'focus:ring-2 focus:ring-blue-500' : 'cursor-not-allowed opacity-80'}`}>

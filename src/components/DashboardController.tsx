@@ -3,8 +3,9 @@ import Link from 'next/link'
 import { useState, useRef, useCallback } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { el } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2, LogOut, LayoutDashboard, Plus, Search, Clock3, Check, HeartPulse, SlidersHorizontal, NotebookPen } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Loader2, LogOut, LayoutDashboard, UsersRound, Plus, Search, Clock3, Check, HeartPulse, SlidersHorizontal, NotebookPen } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
+import PatientBrowser from './PatientBrowser'
 import BookingManager from './BookingManager'
 import BookingModal from './BookingModal'
 import DailyNote from './DailyNote'
@@ -22,6 +23,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [selectedResource, setSelectedResource] = useState('all')
+  const [showPatients, setShowPatients] = useState(false)
   const [newBooking, setNewBooking] = useState(false)
   const requestId = useRef(0)
   const canWrite = resources.some(r => r.canWrite)
@@ -55,7 +57,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
         <Link className="brand" href="/" aria-label="MediBook αρχική"><span className="brand-mark"><HeartPulse size={23} /></span><span>medi<span className="brand-light">book</span><small>CARE, ORGANIZED.</small></span></Link>
         <div className="workspace-badge"><span className="workspace-avatar">M</span><div><strong>Το ιατρείο μου</strong><small>Χώρος εργασίας</small></div><span className="online-dot" /></div>
         <p className="nav-caption">ΧΩΡΟΣ ΕΡΓΑΣΙΑΣ</p>
-        <nav aria-label="Κύρια πλοήγηση"><a className="nav-item active" href="#overview"><LayoutDashboard size={18} /> Επισκόπηση <span className="nav-dot" /></a><a className="nav-item" href="#schedule"><CalendarDays size={18} /> Πρόγραμμα</a><a className="nav-item" href="#notes"><NotebookPen size={18} /> Σημειώσεις ημέρας</a></nav>
+        <nav aria-label="Κύρια πλοήγηση"><a className="nav-item active" href="#overview"><LayoutDashboard size={18} /> Επισκόπηση <span className="nav-dot" /></a><a className="nav-item" href="#schedule"><CalendarDays size={18} /> Πρόγραμμα</a><a className="nav-item" href="#notes"><NotebookPen size={18} /> Σημειώσεις ημέρας</a><button className="nav-item patient-nav" onClick={() => setShowPatients(true)}><UsersRound size={18} /> Ασθενείς</button></nav>
 
       </aside>
       <div className="main-shell">
@@ -96,6 +98,7 @@ export default function DashboardController({ initialData, initialDayNote }: { i
 
         </div>
       </div>
+      {showPatients && <PatientBrowser onClose={() => setShowPatients(false)} />}
       {newBooking && <BookingModal initialDate={currentDate} resources={resources} canWrite={canWrite} onClose={() => setNewBooking(false)} onRefresh={refreshData} />}
     </div>
   )
