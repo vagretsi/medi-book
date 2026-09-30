@@ -79,3 +79,16 @@
 .booking-suggestion { margin-top: 12px; padding-top: 12px; border-top: 1px solid #edcec5; }
 .booking-suggestion p { line-height: 1.7; }
 .error-banner .booking-suggestion button { margin: 10px 0 0; text-decoration: none; color: white; }
+
+.error-banner .booking-suggestion .primary-button {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 14px 16px;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.6;
+}
+.booking-suggestion .primary-button strong { white-space: nowrap; font-size: 16px; }

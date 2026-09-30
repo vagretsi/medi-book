@@ -69,7 +69,7 @@ export default function BookingModal({ apt: initialApt, resources = [], appointm
           {error && <div className="error-banner" role="alert"><p>{error}</p>
             {suggestion && suggestedDuration ? <div className="booking-suggestion">
               <p>Επόμενη διαθέσιμη ώρα για {suggestedDuration}′: <strong>{formatBusinessTime(suggestion.date)}–{formatBusinessTime(new Date(+new Date(suggestion.date) + suggestedDuration * 60_000))}</strong></p>
-              <button type="button" className="primary-button" disabled={loading} onClick={() => { setAcceptedSlot(suggestion); setSlotId(String(suggestion.id)); setSuggestion(null); setSuggestedDuration(null); setError('') }}>Επιλογή {formatBusinessTime(suggestion.date)}</button>
+              <button type="button" className="primary-button" disabled={loading} onClick={() => { setAcceptedSlot(suggestion); setSlotId(String(suggestion.id)); setSuggestion(null); setSuggestedDuration(null); setError('') }}><span>Πατήστε εδώ για την πρώτη διαθέσιμη ώρα</span><strong>{formatBusinessTime(suggestion.date)} →</strong></button>
             </div> : suggestedDuration && <p className="mt-2">Δεν υπάρχει επόμενη διαθέσιμη ώρα σήμερα για {suggestedDuration}′.</p>}
           </div>}
           <div className="space-y-4">
