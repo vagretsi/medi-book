@@ -15,7 +15,8 @@ export default function EditModal({ apt, onClose, onRefresh }: { apt: Appointmen
     setLoading(true)
     setError('')
     try {
-      await updateAppointment(formData)
+      const result = await updateAppointment(formData)
+      if (result.error) { setError(result.error); return }
       await onRefresh()
       onClose()
     } catch (error) {

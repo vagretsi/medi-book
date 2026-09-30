@@ -1,12 +1,14 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { ensureDaySlots, getDayBounds } from '@/lib/day-slots'
 import { authOptions } from '@/lib/auth'
+import { findAppointmentConflict } from '@/lib/appointment-conflicts'
+import { formatBusinessTime } from '@/lib/business-time'
 import type { CalendarResource } from '@/lib/calendar-types'
 
 const prisma = new PrismaClient()
@@ -170,50 +172,60 @@ export async function logout() {
   redirect('/login');
 }
 
-// 3. BOOK APPOINTMENT
-export async function bookAppointment(formData: FormData) {
-  const aptId = parseInt(formData.get('aptId') as string)
-  const name = formData.get('patientName') as string
-  const tel = formData.get('patientTel') as string
-  const notes = formData.get('notes') as string
-  // Default 30 λεπτά αν δεν επιλεγεί κάτι
-  const duration = parseInt(formData.get('duration') as string) || 30 
+// Serialize writes per calendar so simultaneous requests cannot double-book it.
+async function saveAppointment(formData: FormData, mode: 'book' | 'edit') {
+  const aptId = Number(formData.get('aptId'))
+  const duration = Number(formData.get('duration'))
+  if (!Number.isInteger(aptId) || aptId <= 0) return { error: 'Μη έγκυρο ραντεβού.' }
+  if (![15, 30, 45, 60, 90].includes(duration)) return { error: 'Επίλεξε έγκυρη διάρκεια.' }
+  const patientName = String(formData.get('patientName') ?? '').trim()
+  const patientTel = String(formData.get('patientTel') ?? '').trim()
+  if (!patientName || !patientTel) return { error: 'Συμπλήρωσε όνομα και τηλέφωνο.' }
 
   await requireAppointmentWriteAccess(aptId)
+  const result = await prisma.$transaction(async tx => {
+    const target = await tx.appointment.findUnique({ where: { id: aptId } })
+    if (!target) return { error: 'Το ραντεβού δεν βρέθηκε.' }
 
-  await prisma.appointment.update({
-    where: { id: aptId },
-    data: {
-      status: 'BOOKED',
-      patientName: name,
-      patientTel: tel,
-      notes: notes,
-      duration: duration
+    // PostgreSQL row lock, shared by both create and edit operations.
+    await tx.$queryRaw`SELECT "id" FROM "Resource" WHERE "id" = ${target.resourceId} FOR UPDATE`
+    const appointment = await tx.appointment.findUnique({ where: { id: aptId } })
+    if (!appointment) return { error: 'Το ραντεβού δεν βρέθηκε.' }
+    if (mode === 'book' && appointment.status !== 'FREE') {
+      return { error: 'Η ώρα έχει ήδη κρατηθεί. Επίλεξε άλλη ώρα.' }
     }
-  })
-  revalidatePath('/')
+    if (mode === 'edit' && appointment.status !== 'BOOKED') {
+      return { error: 'Το ραντεβού έχει ακυρωθεί. Ανανέωσε το πρόγραμμα.' }
+    }
+
+    const end = new Date(appointment.date.getTime() + duration * 60_000)
+    // No lower date bound: include bookings that began before this day as well.
+    const bookings = await tx.appointment.findMany({
+      where: { resourceId: appointment.resourceId, status: 'BOOKED', id: { not: aptId }, date: { lt: end } },
+      select: { id: true, date: true, duration: true },
+      orderBy: { date: 'asc' },
+    })
+    const conflict = findAppointmentConflict({ ...appointment, duration }, bookings)
+    if (conflict) {
+      return { error: `Υπάρχει ήδη ραντεβού στις ${formatBusinessTime(conflict.date)}. Επίλεξε μικρότερη διάρκεια ή άλλη ώρα.` }
+    }
+    await tx.appointment.update({
+      where: { id: aptId },
+      data: { status: 'BOOKED', patientName, patientTel, notes: String(formData.get('notes') ?? ''), duration },
+    })
+    return { error: null }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted })
+
+  if (!result.error) revalidatePath('/')
+  return result
 }
 
-// 4. UPDATE APPOINTMENT
+export async function bookAppointment(formData: FormData) {
+  return saveAppointment(formData, 'book')
+}
+
 export async function updateAppointment(formData: FormData) {
-  const aptId = parseInt(formData.get('aptId') as string)
-  const name = formData.get('patientName') as string
-  const tel = formData.get('patientTel') as string
-  const notes = formData.get('notes') as string
-  const duration = parseInt(formData.get('duration') as string) || 30
-
-  await requireAppointmentWriteAccess(aptId)
-
-  await prisma.appointment.update({
-    where: { id: aptId },
-    data: {
-      patientName: name,
-      patientTel: tel,
-      notes: notes,
-      duration: duration
-    }
-  })
-  revalidatePath('/')
+  return saveAppointment(formData, 'edit')
 }
 
 // 5. CANCEL APPOINTMENT

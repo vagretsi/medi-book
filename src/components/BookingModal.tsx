@@ -28,7 +28,8 @@ export default function BookingModal({ apt: initialApt, resources = [], resource
     setLoading(true)
     setError('')
     try {
-      await bookAppointment(formData)
+      const result = await bookAppointment(formData)
+      if (result.error) { setError(result.error); return }
       await onRefresh()
       onClose()
     } catch (error) {
