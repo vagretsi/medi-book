@@ -92,3 +92,17 @@
   line-height: 1.6;
 }
 .booking-suggestion .primary-button strong { white-space: nowrap; font-size: 16px; }
+
+/* One quarter-hour always occupies one timeline unit at every breakpoint. */
+.booking-list { --quarter-hour-height: 70px; }
+.booking-list .appointment-row {
+  height: calc(var(--quarter-hour-height) * var(--slot-span, 1));
+  min-height: calc(var(--quarter-hour-height) * var(--slot-span, 1));
+}
+.booking-list .is-booked .appointment-time { justify-content: flex-start; padding-top: 10px; }
+.booking-list .is-booked .appointment-content { align-items: flex-start; }
+.booking-list .is-booked .patient-avatar { margin-top: 2px; }
+.booking-list .is-booked .edit-booking { margin-top: -2px; }
+.appointment-time .appointment-end { margin-top: 4px; line-height: 1.5; }
+@media (min-width: 1600px) { .booking-list { --quarter-hour-height: 80px; } }
+@media (max-width: 650px) { .booking-list { --quarter-hour-height: 73px; } }
