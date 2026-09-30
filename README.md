@@ -212,3 +212,43 @@ npm run lint     # Run ESLint
 - Passwords stored as bcrypt hashes in the database
 - JWT session strategy (stateless)
 - All routes except `/login` and `/api/auth/*` are protected by middleware
+
+## Updating an existing server deployment
+
+Run as the user that owns the checkout and its PM2 process, inside the site's
+repository folder. Node.js 20.9+ is required.
+
+First update (downloads the update script):
+
+```bash
+git pull --ff-only origin main && bash update.sh
+```
+
+Subsequent updates:
+
+```bash
+bash update.sh
+```
+
+The script targets the existing PM2 app `medibook`, fast-forward pulls `main`,
+installs locked dependencies (including build tools),
+generates the Prisma client, builds Next.js, then restarts the existing app.
+It stops on errors or local changes. It preserves `.env` and does not run database
+migrations, schema pushes, or seed scripts. Run it during a quiet period: the
+production build is updated in place; this is not an atomic or zero-downtime deploy.
+A build failure prevents the restart but does not roll back files or dependencies.
+
+If the PM2 process is renamed, specify its existing process name:
+
+```bash
+PM2_APP=your-app-name bash update.sh
+```
+
+For an existing system-level systemd service instead of PM2:
+
+```bash
+SYSTEMD_SERVICE=your-service.service bash update.sh
+```
+
+The systemd mode may ask for sudo credentials. A successful restart is not an
+HTTP health check; verify the deployed site after the script finishes.
